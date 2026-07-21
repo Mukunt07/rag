@@ -1,46 +1,15 @@
 import { ReactNode } from "react";
-import Link from "next/link";
-import { LayoutDashboard, FileText, BookOpen, BrainCircuit, Settings, Search, Bell, Menu, User } from "lucide-react";
+import { Search, Bell, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InteractiveBackground } from "@/components/interactive-background";
+import { Sidebar } from "@/features/dashboard/components/sidebar";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex relative z-0">
       <InteractiveBackground />
-      {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl relative z-10">
-        <div className="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
-              <span className="text-white dark:text-zinc-900 font-bold text-sm leading-none">K</span>
-            </div>
-            <span className="font-semibold tracking-tight text-lg text-zinc-900 dark:text-zinc-100">KnowledgeHub</span>
-          </div>
-        </div>
-        
-        <div className="flex-1 py-6 px-4 space-y-6 overflow-y-auto">
-          <nav className="space-y-1">
-            <p className="px-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Main</p>
-            <NavItem href="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label="Dashboard" active />
-            <NavItem href="/documents" icon={<FileText className="w-4 h-4" />} label="Documents" />
-            <NavItem href="/notes" icon={<BookOpen className="w-4 h-4" />} label="Notes & Summaries" />
-            <NavItem href="/quiz" icon={<BrainCircuit className="w-4 h-4" />} label="Flashcards & Quiz" />
-          </nav>
-          
-          <nav className="space-y-1">
-            <p className="px-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Workspaces</p>
-            <NavItem href="/workspace/personal" icon={<div className="w-2 h-2 rounded-full bg-blue-500" />} label="Personal" />
-            <NavItem href="/workspace/research" icon={<div className="w-2 h-2 rounded-full bg-purple-500" />} label="Research" />
-            <NavItem href="/workspace/work" icon={<div className="w-2 h-2 rounded-full bg-emerald-500" />} label="Work" />
-          </nav>
-        </div>
-        
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
-          <NavItem href="/settings" icon={<Settings className="w-4 h-4" />} label="Settings" />
-        </div>
-      </aside>
+      <Sidebar />
       
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
@@ -81,18 +50,4 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 }
 
-function NavItem({ href, icon, label, active = false }: { href: string; icon: ReactNode; label: string; active?: boolean }) {
-  return (
-    <Link 
-      href={href}
-      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-        active 
-          ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium" 
-          : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-      }`}
-    >
-      {icon}
-      <span>{label}</span>
-    </Link>
-  );
-}
+

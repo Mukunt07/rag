@@ -1,7 +1,5 @@
-import { UploadCard } from "@/features/dashboard/components/upload-card";
-import { RecentDocuments } from "@/features/dashboard/components/recent-documents";
 import { StatisticsCards } from "@/features/dashboard/components/statistics-cards";
-import { QuickActions } from "@/features/dashboard/components/quick-actions";
+import { DashboardGrid } from "@/features/dashboard/components/dashboard-grid";
 
 export const metadata = {
   title: "Dashboard - KnowledgeHub AI",
@@ -18,15 +16,7 @@ export default function DashboardPage() {
 
       <StatisticsCards />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <UploadCard />
-          <RecentDocuments />
-        </div>
-        <div className="space-y-8">
-          <QuickActions />
-        </div>
-      </div>
+      <DashboardGrid />
     </div>
   );
 }
