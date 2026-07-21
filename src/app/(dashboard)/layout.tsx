@@ -2,12 +2,15 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { LayoutDashboard, FileText, BookOpen, BrainCircuit, Settings, Search, Bell, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { InteractiveBackground } from "@/components/interactive-background";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex relative z-0">
+      <InteractiveBackground />
       {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+      <aside className="hidden md:flex flex-col w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl relative z-10">
         <div className="h-16 flex items-center px-6 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
@@ -40,9 +43,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
       
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 relative z-10">
         {/* Topbar */}
-        <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+        <header className="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="w-5 h-5" />
@@ -52,12 +55,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <input
                 type="text"
                 placeholder="Search documents, notes, questions..."
-                className="h-9 w-64 md:w-80 lg:w-96 pl-9 pr-4 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-300 transition-all"
+                className="h-9 w-64 md:w-80 lg:w-96 pl-9 pr-4 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-300 transition-all"
               />
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full" />
