@@ -128,3 +128,17 @@
     @apply font-sans;
   }
 }
+/* React Grid Layout Custom Overrides */
+.react-grid-item.react-grid-placeholder {
+  @apply bg-zinc-200 dark:bg-zinc-800 rounded-xl opacity-50;
+}
+
+.react-resizable-handle {
+  @apply absolute bottom-0 right-0 w-6 h-6 cursor-se-resize z-50;
+  background-image: none !important;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  @apply absolute bottom-2 right-2 w-2 h-2 border-r-2 border-b-2 border-zinc-400 dark:border-zinc-600;
+}
