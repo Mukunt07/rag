@@ -10,12 +10,21 @@ import {
   BrainCircuit,
   Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/login");
+  };
 
   return (
     <motion.aside
@@ -90,6 +99,25 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 shrink-0">
         <NavItem href="/settings" icon={<Settings className="w-4 h-4 shrink-0" />} label="Settings" isCollapsed={isCollapsed} />
+        <button
+          onClick={handleLogout}
+          className={`flex items-center px-3 py-2 rounded-md text-sm transition-colors text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 w-full ${isCollapsed ? 'justify-center' : 'gap-3'}`}
+          title={isCollapsed ? "Logout" : undefined}
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          <AnimatePresence mode="wait">
+            {!isCollapsed && (
+              <motion.span
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                className="whitespace-nowrap overflow-hidden text-left"
+              >
+                Logout
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
       </div>
     </motion.aside>
   );
