@@ -4,8 +4,17 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InteractiveBackground } from "@/components/interactive-background";
 import { Sidebar } from "@/features/dashboard/components/sidebar";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
+  
+  const userInitials = session?.user?.name
+    ? session.user.name.substring(0, 2).toUpperCase()
+    : "U";
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex relative z-0">
       <InteractiveBackground />
@@ -35,8 +44,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Bell className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full" />
             </Button>
-            <Button variant="ghost" size="icon" className="rounded-full bg-zinc-100 dark:bg-zinc-800">
-              <User className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+            <Button variant="ghost" size="icon" className="rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm font-medium">
+              {userInitials}
             </Button>
           </div>
         </header>
