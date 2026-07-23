@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { signUp } from "@/lib/auth-client";
 import { motion, Variants } from "framer-motion";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,14 +17,25 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const router = useRouter();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      console.log("Register with:", name, email, password);
-    }, 1500);
+    
+    const { data, error } = await signUp.email({
+      email,
+      password,
+      name,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      alert(error.message || "Something went wrong during registration.");
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   const containerVariants: Variants = {
