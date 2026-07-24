@@ -55,7 +55,7 @@ export function UploadCard() {
           <input
             type="file"
             className="hidden"
-            accept=".pdf,.docx,.txt,.md"
+            accept=".pdf,.doc,.docx,.txt,.md,.rtf,.ppt,.pptx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.webp,.tiff,.bmp,.json,.xml,.html,.zip,.eml,.msg"
             onChange={handleFileUpload}
             disabled={isUploading}
             ref={fileInputRef}
@@ -66,8 +66,8 @@ export function UploadCard() {
           <h3 className="font-medium text-zinc-900 dark:text-zinc-100 mb-1">
             {isUploading ? "Uploading..." : "Click to upload or drag and drop"}
           </h3>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs mb-6">
-            PDF, DOCX, TXT, or Markdown (max. 50MB)
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mb-6">
+            PDF, DOCX, TXT, CSV, Images, or Markdown (max. 50MB)
           </p>
           <Button type="button" variant="secondary" className="shadow-none pointer-events-none" disabled={isUploading}>
             Select Files

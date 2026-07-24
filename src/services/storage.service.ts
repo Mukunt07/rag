@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export class StorageService {
@@ -25,25 +25,36 @@ export class StorageService {
     });
   }
 
-  async uploadFile(key: string, body: Buffer, contentType: string): Promise<string> {
+  async uploadFile(key: string, body: Buffer, contentType: string, contentEncoding?: string): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: key,
       Body: body,
       ContentType: contentType,
+      ...(contentEncoding && { ContentEncoding: contentEncoding }),
     });
 
     await this.client.send(command);
     return key;
   }
 
-  async getSignedDownloadUrl(key: string, expiresIn: number = 3600): Promise<string> {
-    const command = new GetObjectCommand({
+  async deleteFile(key: string): Promise<void> {
+    const command = new DeleteObjectCommand({
       Bucket: this.bucketName,
       Key: key,
     });
+    
+    await this.client.send(command);
+  }
 
-    return await getSignedUrl(this.client, command, { expiresIn });
+  async getSignedDownloadUrl(key: string, expiresInSeconds = 3600): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      ResponseContentDisposition: "inline",
+    });
+
+    return await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
   }
 }
 

@@ -18,13 +18,23 @@ enum WorkspaceVisibility {
 
 enum DocumentType {
   PDF
+  DOC
   DOCX
   TXT
+  PPT
   PPTX
+  XLS
   XLSX
   CSV
   IMAGE
   MARKDOWN
+  RTF
+  ZIP
+  JSON
+  XML
+  HTML
+  EML
+  MSG
 }
 
 enum DocumentSource {
@@ -231,8 +241,16 @@ model Document {
   storageProvider  StorageProvider @map("storage_provider")
   storageKey       String   @map("storage_key")
   mimeType         String?  @map("mime_type")
-  fileSize         Int      @map("file_size")
+  
+  originalSize     Int      @default(0) @map("original_size")
+  storageSize      Int?     @map("storage_size")
+  compressionRatio Float?   @map("compression_ratio")
   checksum         String?
+
+  language         String?
+  hasImages        Boolean  @default(false) @map("has_images")
+  hasTables        Boolean  @default(false) @map("has_tables")
+  
   status           DocumentStatus @default(UPLOADED)
   
   pageCount        Int?     @map("page_count")

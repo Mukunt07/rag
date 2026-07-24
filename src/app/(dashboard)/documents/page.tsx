@@ -32,7 +32,7 @@ export default async function DocumentsPage() {
     id: doc.id,
     name: doc.originalFilename,
     date: new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(doc.createdAt),
-    size: `${(doc.fileSize / (1024 * 1024)).toFixed(2)} MB`,
+    size: `${((doc as any).originalSize / (1024 * 1024)).toFixed(2)} MB`,
     workspace: doc.workspace.name,
     status: doc.status
   }));

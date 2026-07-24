@@ -1,7 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 import { prisma } from "@/lib/prisma";
 import { storageService } from "../storage.service";
-import { DocumentType, DocumentSource, StorageProvider, DocumentStatus, ProcessingStage } from "@prisma/client";
+import { validationService } from "./validation.service";
+import { hashService } from "./hash.service";
+import { optimizationService } from "./optimization.service";
+import { DocumentSource, StorageProvider, DocumentStatus, ProcessingStage } from "@prisma/client";
 
 export class UploadService {
   async handleUpload(
@@ -10,24 +13,40 @@ export class UploadService {
     workspaceId: string
   ) {
     const originalFilename = file.name;
-    const fileSize = file.size;
-    const mimeType = file.type;
+    const originalSize = file.size;
+    const providedMimeType = file.type;
     
-    // Determine DocumentType
-    let documentType: DocumentType = DocumentType.TXT;
-    if (originalFilename.endsWith(".pdf")) documentType = DocumentType.PDF;
-    else if (originalFilename.endsWith(".docx")) documentType = DocumentType.DOCX;
-    else if (originalFilename.endsWith(".md")) documentType = DocumentType.MARKDOWN;
-
-    // Read file buffer
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const rawBuffer = Buffer.from(arrayBuffer);
 
-    // Upload to Cloudflare R2
+    // 1. Validation Service (Magic bytes & MIME mapping)
+    const { documentType, mimeType } = await validationService.validateFile(rawBuffer, originalFilename, providedMimeType);
+
+    // 2. Hash Service (SHA-256)
+    const checksum = hashService.generateHash(rawBuffer);
+
+    // 3. Duplicate Detection
+    const existingDoc = await prisma.document.findFirst({
+      where: {
+        workspaceId,
+        checksum,
+      }
+    });
+
+    if (existingDoc) {
+      throw new Error(`Duplicate file detected: A file with this exact content already exists as '${existingDoc.originalFilename}'.`);
+    }
+
+    // 4. Optimization Service
+    const { buffer: optimizedBuffer, encoding } = await optimizationService.optimize(rawBuffer, documentType, originalFilename);
+    const storageSize = optimizedBuffer.length;
+    const compressionRatio = originalSize > 0 ? ((originalSize - storageSize) / originalSize) * 100 : 0;
+
+    // 5. Upload to Cloudflare R2
     const storageKey = `workspaces/${workspaceId}/${uuidv4()}-${originalFilename}`;
-    await storageService.uploadFile(storageKey, buffer, mimeType);
+    await storageService.uploadFile(storageKey, optimizedBuffer, mimeType, encoding);
 
-    // Create DB Record
+    // 6. Create DB Record
     const document = await prisma.document.create({
       data: {
         title: originalFilename,
@@ -37,14 +56,17 @@ export class UploadService {
         storageProvider: StorageProvider.CLOUDFLARE_R2,
         storageKey,
         mimeType,
-        fileSize,
+        originalSize,
+        storageSize,
+        compressionRatio,
+        checksum,
         status: DocumentStatus.QUEUED,
         workspaceId,
         uploadedById: userId,
       }
     });
 
-    // Create initial processing job
+    // 7. Create initial processing job
     await prisma.processingJob.create({
       data: {
         documentId: document.id,
