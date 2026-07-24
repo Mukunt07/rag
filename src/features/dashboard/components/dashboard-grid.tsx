@@ -14,21 +14,21 @@ const ResponsiveGridLayout = WidthProvider(Responsive);
 
 type WidgetId = "upload" | "recent" | "quick";
 
-const WIDGETS: Record<WidgetId, { component: React.ReactNode }> = {
-  upload: { component: <UploadCard /> },
-  recent: { component: <RecentDocuments /> },
-  quick: { component: <QuickActions /> }
-};
-
 const DEFAULT_LAYOUT: Layout = [
   { i: "upload", x: 0, y: 0, w: 2, h: 2, minW: 1, minH: 2 },
   { i: "recent", x: 2, y: 0, w: 1, h: 2, minW: 1, minH: 2 },
   { i: "quick", x: 0, y: 2, w: 3, h: 1, minW: 1, minH: 1 }
 ];
 
-export function DashboardGrid() {
+export function DashboardGrid({ recentDocuments = [] }: { recentDocuments?: any[] }) {
   const [layout, setLayout] = useState<Layout>(DEFAULT_LAYOUT);
   const [isMounted, setIsMounted] = useState(false);
+
+  const WIDGETS: Record<WidgetId, { component: React.ReactNode }> = {
+    upload: { component: <UploadCard /> },
+    recent: { component: <RecentDocuments documents={recentDocuments} /> },
+    quick: { component: <QuickActions /> }
+  };
 
   useEffect(() => {
     setIsMounted(true);

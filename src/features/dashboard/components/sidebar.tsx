@@ -11,13 +11,14 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  FileIcon
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
-export function Sidebar() {
+export function Sidebar({ recentDocuments = [] }: { recentDocuments?: any[] }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
 
@@ -95,6 +96,32 @@ export function Sidebar() {
           <NavItem href="/workspace/research" icon={<div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />} label="Research" isCollapsed={isCollapsed} />
           <NavItem href="/workspace/work" icon={<div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />} label="Work" isCollapsed={isCollapsed} />
         </nav>
+
+        {recentDocuments.length > 0 && (
+          <nav className="space-y-1 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <AnimatePresence mode="wait">
+              {!isCollapsed && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="px-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 whitespace-nowrap"
+                >
+                  Recent Documents
+                </motion.p>
+              )}
+            </AnimatePresence>
+            {recentDocuments.map((doc) => (
+              <NavItem 
+                key={doc.id} 
+                href={`/documents`} 
+                icon={<FileIcon className="w-4 h-4 shrink-0" />} 
+                label={doc.name} 
+                isCollapsed={isCollapsed} 
+              />
+            ))}
+          </nav>
+        )}
       </div>
 
       <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 shrink-0">

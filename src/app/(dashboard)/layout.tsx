@@ -6,6 +6,7 @@ import { InteractiveBackground } from "@/components/interactive-background";
 import { Sidebar } from "@/features/dashboard/components/sidebar";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await auth.api.getSession({
@@ -15,10 +16,27 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const userInitials = session?.user?.name
     ? session.user.name.substring(0, 2).toUpperCase()
     : "U";
+
+  const userId = session?.user?.id;
+  let recentDocuments: any[] = [];
+
+  if (userId) {
+    const rawDocs = await prisma.document.findMany({
+      where: { uploadedById: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    
+    recentDocuments = rawDocs.map(doc => ({
+      id: doc.id,
+      name: doc.originalFilename,
+    }));
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex relative z-0">
       <InteractiveBackground />
-      <Sidebar />
+      <Sidebar recentDocuments={recentDocuments} />
       
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 relative z-10">

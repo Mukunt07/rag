@@ -1,31 +1,38 @@
 import { FileText, Folder, MessageSquare, BrainCircuit } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function StatisticsCards() {
+interface Stats {
+  totalDocs: number;
+  activeWorkspaces: number;
+  totalConversations: number;
+  generatedQuizzes: number;
+}
+
+export function StatisticsCards({ stats = { totalDocs: 0, activeWorkspaces: 0, totalConversations: 0, generatedQuizzes: 0 } }: { stats?: Stats }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard 
         title="Total Documents" 
-        value="24" 
-        trend="+3 this week"
+        value={stats.totalDocs.toString()} 
+        trend="Across all workspaces"
         icon={<FileText className="w-5 h-5 text-blue-500" />}
       />
       <StatCard 
         title="Active Workspaces" 
-        value="4" 
-        trend="Personal, Work..."
+        value={stats.activeWorkspaces.toString()} 
+        trend="Owned by you"
         icon={<Folder className="w-5 h-5 text-emerald-500" />}
       />
       <StatCard 
         title="AI Conversations" 
-        value="128" 
-        trend="+12 this week"
+        value={stats.totalConversations.toString()} 
+        trend="Active chats"
         icon={<MessageSquare className="w-5 h-5 text-purple-500" />}
       />
       <StatCard 
         title="Generated Quizzes" 
-        value="15" 
-        trend="+2 this week"
+        value={stats.generatedQuizzes.toString()} 
+        trend="Saved artifacts"
         icon={<BrainCircuit className="w-5 h-5 text-rose-500" />}
       />
     </div>

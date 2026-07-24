@@ -1,19 +1,133 @@
-import React from "react";
+"use client";
 
-export function DocumentsView() {
+import React, { useState, useRef } from "react";
+import { FileIcon, MoreHorizontal, UploadCloud } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+
+interface Document {
+  id: string;
+  name: string;
+  date: string;
+  size: string;
+  workspace: string;
+  status: string;
+}
+
+export function DocumentsView({ initialDocuments = [] }: { initialDocuments?: Document[] }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [message, setMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setMessage("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("workspaceId", "default-workspace");
+
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to upload document");
+      }
+
+      setMessage("Document uploaded successfully!");
+      router.refresh(); // Refresh the page to show new document
+    } catch (error: any) {
+      setMessage(error.message);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Documents</h1>
-        <p className="text-zinc-500 dark:text-zinc-400 mt-1">Manage and organize your knowledge files.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Documents</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1">Manage and organize your knowledge files.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {message && (
+            <span className={`text-sm ${message.includes("success") ? "text-emerald-500" : "text-red-500"}`}>
+              {message}
+            </span>
+          )}
+          <div>
+            <Button 
+              type="button" 
+              variant="default" 
+              className="gap-2" 
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <UploadCloud className="w-4 h-4" />
+              {isUploading ? "Uploading..." : "Upload Document"}
+            </Button>
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf,.docx,.txt,.md"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+              ref={fileInputRef}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-8 text-center shadow-sm">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">No documents yet</h2>
-        <p className="text-zinc-500 dark:text-zinc-400 mt-2">Upload your first document to get started.</p>
-        <button className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-          Upload Document
-        </button>
+      <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden">
+        {initialDocuments.length === 0 ? (
+          <div className="p-12 text-center">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">No documents yet</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 mt-2">Upload your first document to get started.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            {initialDocuments.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors group">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <FileIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer">
+                      {doc.name}
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2 mt-0.5">
+                      <span>{doc.size}</span>
+                      <span>•</span>
+                      <span>{doc.date}</span>
+                      <span className="px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px] ml-2 font-medium truncate max-w-[120px]">
+                        {doc.workspace}
+                      </span>
+                      <span className="px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[10px] ml-2 font-medium uppercase">
+                        {doc.status}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" className="shrink-0 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
