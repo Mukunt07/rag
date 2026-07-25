@@ -56,6 +56,25 @@ export class StorageService {
 
     return await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
   }
+
+  async downloadDocument(key: string): Promise<Buffer> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+    });
+    
+    const response = await this.client.send(command);
+    if (!response.Body) {
+      throw new Error("Failed to download document: Body is empty");
+    }
+    
+    // Convert Web ReadableStream/Node Stream to Buffer
+    const chunks = [];
+    for await (const chunk of response.Body as any) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  }
 }
 
 export const storageService = new StorageService();

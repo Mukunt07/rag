@@ -22,7 +22,7 @@ export class OptimizationService {
   async optimize(buffer: Buffer, documentType: DocumentType, originalFilename: string): Promise<OptimizationResult> {
     
     // 1. TEXT-BASED: Gzip compression
-    const textTypes = [
+    const textTypes: DocumentType[] = [
       DocumentType.TXT, 
       DocumentType.CSV, 
       DocumentType.MARKDOWN, 
@@ -56,7 +56,7 @@ export class OptimizationService {
           image = image.webp({ quality: 80 });
         }
 
-        const optimizedBuffer = await image.withMetadata(false).toBuffer();
+        const optimizedBuffer = await image.toBuffer();
         
         // Fallback: If optimization made it bigger (rare, but happens for tiny pngs), keep original
         if (optimizedBuffer.length < buffer.length) {

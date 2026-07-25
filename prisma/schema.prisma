@@ -65,10 +65,12 @@ enum DocumentStatus {
 
 enum ProcessingStage {
   QUEUED
-  EXTRACTING_TEXT
-  GENERATING_CHUNKS
-  GENERATING_EMBEDDINGS
-  INDEXING_QDRANT
+  DOWNLOADING
+  PARSING
+  EXTRACTING
+  CHUNKING
+  EMBEDDING
+  INDEXING
   COMPLETED
   FAILED
 }
@@ -281,6 +283,11 @@ model ProcessingJob {
   status       ProcessingStatus @default(PENDING)
   progress     Float           @default(0)
   errorMessage String?         @map("error_message")
+  
+  retryCount   Int             @default(0) @map("retry_count")
+  lastError    String?         @map("last_error")
+  failedStage  ProcessingStage? @map("failed_stage")
+  
   startedAt    DateTime?       @map("started_at")
   completedAt  DateTime?       @map("completed_at")
 

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { FileIcon, MoreHorizontal, UploadCloud, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
 
 interface Document {
@@ -77,7 +78,7 @@ export function DocumentsView({ initialDocuments = [] }: { initialDocuments?: Do
                 disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <UploadCloud className="w-4 h-4" />
+                {isUploading ? <Spinner size="sm" className="text-primary-foreground" /> : <UploadCloud className="w-4 h-4" />}
                 {isUploading ? "Uploading..." : "Upload Document"}
               </Button>
               <input
