@@ -67,14 +67,14 @@ export class UploadService {
     });
 
     // 7. Create initial processing job
-    await prisma.processingJob.create({
+    const processingJob = await prisma.processingJob.create({
       data: {
         documentId: document.id,
-        stage: ProcessingStage.QUEUED,
-      }
+        stage: (ProcessingStage as any).QUEUED,
+      } as any
     });
 
-    return document;
+    return { document, processingJob };
   }
 }
 

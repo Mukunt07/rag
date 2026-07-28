@@ -1,5 +1,6 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { geminiService } from "./gemini.service";
+import { geminiProvider } from "./gemini.service";
+import { getLLMProvider } from "./llm.factory";
 import { prisma } from "@/lib/prisma";
 
 export class RagService {
@@ -29,7 +30,7 @@ export class RagService {
   async indexChunks(documentId: string, chunks: { text: string; chunkIndex: number; pageNumber?: number }[]) {
     await this.ensureCollection();
 
-    const embeddings = await geminiService.generateEmbeddings(chunks.map(c => c.text));
+    const embeddings = await geminiProvider.generateEmbeddings(chunks.map(c => c.text));
 
     const points = chunks.map((chunk, i) => {
       const vectorId = crypto.randomUUID();
@@ -66,9 +67,16 @@ export class RagService {
     });
   }
 
-  async searchAndAnswer(query: string, workspaceId: string): Promise<{ answer: string; sources: any[] }> {
-    // 1. Retrieve
-    const queryEmbedding = (await geminiService.generateEmbeddings([query]))[0];
+  async searchAndAnswer(
+    query: string, 
+    workspaceId: string, 
+    options?: { provider?: string; model?: string }
+  ): Promise<{ answer: string; sources: any[] }> {
+    const providerId = options?.provider || "gemini";
+    const modelId = options?.model || "gemini-1.5-flash";
+
+    // 1. Retrieve using Gemini embeddings (maintaining consistency)
+    const queryEmbedding = (await geminiProvider.generateEmbeddings([query]))[0];
     
     // We should filter by documentIds that belong to this workspace
     const workspaceDocs = await prisma.document.findMany({
@@ -93,13 +101,14 @@ export class RagService {
     // 2. Build Context
     const contextString = sources.map((s: any) => `[Doc ${s.documentId}, Chunk ${s.chunkIndex}]: ${s.text}`).join("\n\n");
 
-    // 3. Call Gemini
+    // 3. Call selected LLM Provider
     const systemPrompt = `You are a helpful knowledge assistant. Use the following extracted context to answer the user's query. Cite your sources if possible.
 Context:
 ${contextString}
 `;
 
-    const answer = await geminiService.generateText(query, systemPrompt);
+    const llmProvider = getLLMProvider(providerId);
+    const answer = await llmProvider.generateText(query, modelId, systemPrompt);
 
     // 4. Return Citation
     return { answer, sources };

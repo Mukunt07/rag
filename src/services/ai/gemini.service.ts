@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { LLMProvider } from "./llm.interface";
 
-export class GeminiService {
+export class GeminiProvider implements LLMProvider {
   private genAI: GoogleGenerativeAI;
-  private defaultModel = "gemini-1.5-flash";
   private embeddingModel = "text-embedding-004";
 
   constructor() {
@@ -16,8 +16,6 @@ export class GeminiService {
   async generateEmbeddings(texts: string[]): Promise<number[][]> {
     const model = this.genAI.getGenerativeModel({ model: this.embeddingModel });
     
-    // Google Gemini API typically processes one at a time or in batches depending on the SDK.
-    // For simplicity, we process concurrently.
     const promises = texts.map(async (text) => {
       const result = await model.embedContent(text);
       return result.embedding.values;
@@ -26,18 +24,18 @@ export class GeminiService {
     return Promise.all(promises);
   }
 
-  async generateText(prompt: string, systemInstruction?: string): Promise<string> {
+  async generateText(prompt: string, modelId: string, systemInstruction?: string): Promise<string> {
     const model = this.genAI.getGenerativeModel({ 
-      model: this.defaultModel,
+      model: modelId,
       systemInstruction: systemInstruction,
     });
     const result = await model.generateContent(prompt);
     return result.response.text();
   }
 
-  async generateJson<T>(prompt: string, systemInstruction?: string): Promise<T> {
+  async generateJson<T>(prompt: string, modelId: string, systemInstruction?: string): Promise<T> {
     const model = this.genAI.getGenerativeModel({ 
-      model: this.defaultModel,
+      model: modelId,
       systemInstruction: systemInstruction,
       generationConfig: {
         responseMimeType: "application/json"
@@ -50,4 +48,4 @@ export class GeminiService {
   }
 }
 
-export const geminiService = new GeminiService();
+export const geminiProvider = new GeminiProvider();

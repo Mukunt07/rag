@@ -39,10 +39,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const document = await uploadService.handleUpload(file, session.user.id, targetWorkspaceId);
+    const { document, processingJob } = await uploadService.handleUpload(file, session.user.id, targetWorkspaceId);
 
-    // Normally we would trigger a background worker here (e.g., via a message queue) 
-    // to process the document text extraction and embedding to keep the request fast.
+    // Kick off processing in the background
+    // In a production environment this should be handed off to a robust queue (e.g. BullMQ)
+    import("@/services/processing/processing.service").then(({ processingService }) => {
+      processingService.processDocument(document.id, processingJob.id).catch(console.error);
+    });
     
     return NextResponse.json({ success: true, document });
   } catch (error) {

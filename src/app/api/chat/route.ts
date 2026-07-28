@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { message, workspaceId, sessionId } = body;
+    const { message, workspaceId, sessionId, provider, model } = body;
 
     if (!message || !workspaceId) {
       return NextResponse.json({ error: "Missing message or workspaceId" }, { status: 400 });
     }
 
     // Call the RAG Service to get the answer and citations
-    const result = await ragService.searchAndAnswer(message, workspaceId);
+    const result = await ragService.searchAndAnswer(message, workspaceId, { provider, model });
 
     // Save the message and the bot's response if sessionId is provided
     if (sessionId) {
