@@ -19,6 +19,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   const userId = session?.user?.id;
   let recentDocuments: any[] = [];
+  let workspaces: any[] = [];
 
   if (userId) {
     const rawDocs = await prisma.document.findMany({
@@ -31,12 +32,17 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       id: doc.id,
       name: doc.originalFilename,
     }));
+
+    workspaces = await prisma.workspace.findMany({
+      where: { ownerId: userId, deletedAt: null },
+      orderBy: { createdAt: 'asc' }
+    });
   }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex relative z-0">
       <InteractiveBackground />
-      <Sidebar recentDocuments={recentDocuments} />
+      <Sidebar recentDocuments={recentDocuments} workspaces={workspaces} />
       
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 relative z-10">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { FileIcon, MoreHorizontal, UploadCloud, X } from "lucide-react";
+import { FileIcon, MoreHorizontal, UploadCloud, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,27 @@ export function DocumentsView({ initialDocuments = [] }: { initialDocuments?: Do
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handleDeleteDocument = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this document? This will remove all associated AI chunks and embeddings.")) return;
+
+    try {
+      const res = await fetch(`/api/documents/${id}`, {
+        method: "DELETE"
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to delete document");
+      }
+
+      setMessage("Document deleted successfully!");
+      router.refresh();
+    } catch (error: any) {
+      setMessage(error.message);
     }
   };
 
@@ -127,9 +148,20 @@ export function DocumentsView({ initialDocuments = [] }: { initialDocuments?: Do
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="shrink-0 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={(e) => handleDeleteDocument(doc.id, e)}
+                      className="text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      title="Delete Document"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -17,7 +17,7 @@ type WidgetId = "upload" | "recent" | "quick";
 const DEFAULT_LAYOUT: Layout = [
   { i: "upload", x: 0, y: 0, w: 2, h: 2, minW: 1, minH: 2 },
   { i: "recent", x: 2, y: 0, w: 1, h: 2, minW: 1, minH: 2 },
-  { i: "quick", x: 0, y: 2, w: 3, h: 1, minW: 1, minH: 1 }
+  { i: "quick", x: 0, y: 2, w: 3, h: 2, minW: 1, minH: 1.5 }
 ];
 
 export function DashboardGrid({ recentDocuments = [] }: { recentDocuments?: any[] }) {
@@ -32,12 +32,19 @@ export function DashboardGrid({ recentDocuments = [] }: { recentDocuments?: any[
 
   useEffect(() => {
     setIsMounted(true);
-    const saved = localStorage.getItem("dashboard-grid-layout-v1");
+    const saved = localStorage.getItem("dashboard-grid-layout-v3");
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Layout;
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setLayout(parsed);
+          // Auto-correct height for quick widget if it's less than 2
+          const corrected = parsed.map(item => {
+            if (item.i === "quick" && item.h < 2) {
+              return { ...item, h: 2 };
+            }
+            return item;
+          });
+          setLayout(corrected);
         }
       } catch (e) {
         // ignore
@@ -47,7 +54,7 @@ export function DashboardGrid({ recentDocuments = [] }: { recentDocuments?: any[
 
   const handleLayoutChange = (newLayout: Layout) => {
     setLayout(newLayout);
-    localStorage.setItem("dashboard-grid-layout-v1", JSON.stringify(newLayout));
+    localStorage.setItem("dashboard-grid-layout-v3", JSON.stringify(newLayout));
   };
 
   if (!isMounted) return null; // Prevent hydration mismatch

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     const session = await auth.api.getSession({
       headers: req.headers
     });
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         where: { ownerId: session.user.id },
         take: 1
       });
-      
+
       if (userWorkspaces.length > 0) {
         targetWorkspaceId = userWorkspaces[0].id;
       } else {
@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
 
     // Fetch documents along with their latest processing job status
     const documents = await prisma.document.findMany({
-      where: { 
+      where: {
         workspaceId: targetWorkspaceId,
-        deletedAt: null 
+        deletedAt: null
       },
       include: {
         processingJobs: {

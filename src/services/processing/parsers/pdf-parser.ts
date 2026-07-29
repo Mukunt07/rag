@@ -1,4 +1,10 @@
+// Polyfill DOMMatrix for Node.js environments (required by pdf-parse / pdf.js text rendering)
+if (typeof global !== "undefined" && !("DOMMatrix" in global)) {
+  (global as any).DOMMatrix = class DOMMatrix {};
+}
+
 const pdfParse = require("pdf-parse");
+const parsePDF = typeof pdfParse === "function" ? pdfParse : pdfParse.default;
 import { DocumentParser } from "./parser.interface";
 import { ParsedDocument, Page } from "../processing.types";
 
@@ -39,7 +45,7 @@ export class PdfParser implements DocumentParser {
         });
     };
 
-    const data = await pdfParse(buffer, { pagerender: renderPage });
+    const data = await parsePDF(buffer, { pagerender: renderPage });
     
     // If pages didn't populate (some versions of pdf-parse behave differently), we fallback
     if (pages.length === 0) {

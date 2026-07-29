@@ -21,11 +21,20 @@ export default async function DashboardPage() {
   let activeWorkspaces = 0;
   let totalConversations = 0;
   let recentDocuments: any[] = [];
+  let stats = {
+    totalDocs: 0,
+    activeWorkspaces: 0,
+    totalConversations: 0,
+    generatedQuizzes: 0
+  };
 
   if (userId) {
     // 1. Fetch counts
     totalDocs = await prisma.document.count({
-      where: { uploadedById: userId }
+      where: { 
+        uploadedById: userId,
+        deletedAt: null
+      }
     });
 
     activeWorkspaces = await prisma.workspace.count({
@@ -36,9 +45,19 @@ export default async function DashboardPage() {
       where: { createdById: userId }
     });
 
+    const generatedQuizzes = await prisma.aiGeneration.count({
+      where: {
+        workspace: { ownerId: userId },
+        generationType: "quiz"
+      }
+    });
+
     // 2. Fetch recent documents
     const rawDocs = await prisma.document.findMany({
-      where: { uploadedById: userId },
+      where: { 
+        uploadedById: userId,
+        deletedAt: null
+      },
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
@@ -55,15 +74,14 @@ export default async function DashboardPage() {
       size: `${((doc as any).originalSize / (1024 * 1024)).toFixed(2)} MB`,
       workspace: doc.workspace.name,
     }));
-  }
 
-  const stats = {
-    totalDocs,
-    activeWorkspaces,
-    totalConversations,
-    // Just a placeholder for quizzes if we don't have a direct model count for them yet
-    generatedQuizzes: 0 
-  };
+    stats = {
+      totalDocs,
+      activeWorkspaces,
+      totalConversations,
+      generatedQuizzes
+    };
+  }
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">

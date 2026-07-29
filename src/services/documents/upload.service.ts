@@ -30,6 +30,7 @@ export class UploadService {
       where: {
         workspaceId,
         checksum,
+        deletedAt: null,
       }
     });
 

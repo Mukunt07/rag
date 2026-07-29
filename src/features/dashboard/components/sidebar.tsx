@@ -14,13 +14,14 @@ import {
   LogOut,
   FileIcon
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
-export function Sidebar({ recentDocuments = [] }: { recentDocuments?: any[] }) {
+export function Sidebar({ recentDocuments = [], workspaces = [] }: { recentDocuments?: any[]; workspaces?: any[] }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await signOut();
@@ -73,10 +74,10 @@ export function Sidebar({ recentDocuments = [] }: { recentDocuments?: any[] }) {
               </motion.p>
             )}
           </AnimatePresence>
-          <NavItem href="/dashboard" icon={<LayoutDashboard className="w-4 h-4 shrink-0" />} label="Dashboard" isCollapsed={isCollapsed} active />
-          <NavItem href="/documents" icon={<FileText className="w-4 h-4 shrink-0" />} label="Documents" isCollapsed={isCollapsed} />
-          <NavItem href="/notes" icon={<BookOpen className="w-4 h-4 shrink-0" />} label="Notes & Summaries" isCollapsed={isCollapsed} />
-          <NavItem href="/quiz" icon={<BrainCircuit className="w-4 h-4 shrink-0" />} label="Flashcards & Quiz" isCollapsed={isCollapsed} />
+          <NavItem href="/dashboard" icon={<LayoutDashboard className="w-4 h-4 shrink-0" />} label="Dashboard" isCollapsed={isCollapsed} active={pathname === "/dashboard"} />
+          <NavItem href="/documents" icon={<FileText className="w-4 h-4 shrink-0" />} label="Documents" isCollapsed={isCollapsed} active={pathname === "/documents" || pathname === "/dashboard/documents"} />
+          <NavItem href="/notes" icon={<BookOpen className="w-4 h-4 shrink-0" />} label="Notes & Summaries" isCollapsed={isCollapsed} active={pathname === "/notes"} />
+          <NavItem href="/quiz" icon={<BrainCircuit className="w-4 h-4 shrink-0" />} label="Flashcards & Quiz" isCollapsed={isCollapsed} active={pathname === "/quiz"} />
         </nav>
 
         <nav className="space-y-1">
@@ -92,9 +93,20 @@ export function Sidebar({ recentDocuments = [] }: { recentDocuments?: any[] }) {
               </motion.p>
             )}
           </AnimatePresence>
-          <NavItem href="/workspace/personal" icon={<div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />} label="Personal" isCollapsed={isCollapsed} />
-          <NavItem href="/workspace/research" icon={<div className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />} label="Research" isCollapsed={isCollapsed} />
-          <NavItem href="/workspace/work" icon={<div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />} label="Work" isCollapsed={isCollapsed} />
+          {workspaces.map((ws, index) => {
+            const colors = ["bg-blue-500", "bg-purple-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500"];
+            const bgClass = colors[index % colors.length];
+            return (
+              <NavItem 
+                key={ws.id} 
+                href={`/workspace/${ws.id}`} 
+                icon={<div className={`w-2 h-2 rounded-full ${bgClass} shrink-0`} />} 
+                label={ws.name} 
+                isCollapsed={isCollapsed} 
+                active={pathname === `/workspace/${ws.id}`}
+              />
+            );
+          })}
         </nav>
 
         {recentDocuments.length > 0 && (

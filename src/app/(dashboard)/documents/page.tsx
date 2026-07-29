@@ -18,7 +18,10 @@ export default async function DocumentsPage() {
 
   if (userId) {
     rawDocs = await prisma.document.findMany({
-      where: { uploadedById: userId },
+      where: { 
+        uploadedById: userId,
+        deletedAt: null
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         workspace: {
