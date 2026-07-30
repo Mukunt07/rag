@@ -119,6 +119,7 @@ model User {
   documents     Document[]
   chatSessions  ChatSession[]
   usageMetrics  UsageMetric[]
+  apiKeys       UserApiKey[]
 
   @@map("user")
 }
@@ -424,3 +425,21 @@ model UsageMetric {
 
   @@map("usage_metrics")
 }
+
+model UserApiKey {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String
+  encryptedKey String   @map("encrypted_key")
+  keyName      String?  @map("key_name")
+  defaultModel String?  @map("default_model")
+  isDefault    Boolean  @default(false) @map("is_default")
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("user_api_keys")
+}
+

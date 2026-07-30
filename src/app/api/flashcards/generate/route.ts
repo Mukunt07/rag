@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getLLMProvider } from "@/services/ai/llm.factory";
+import { ProviderResolver } from "@/services/ai/provider.resolver";
+import { AIProviderId } from "@/services/ai/models.registry";
 
 interface Flashcard {
   front: string;
@@ -67,8 +68,8 @@ You must respond with valid JSON matching this schema:
 ${context}
 ---`;
 
-    const llmProvider = getLLMProvider(provider);
-    const flashcardData = await llmProvider.generateJson<FlashcardsResponse>(userPrompt, model, systemPrompt);
+    const { provider: aiProvider, config } = await ProviderResolver.resolve(session.user.id, provider as AIProviderId, model);
+    const flashcardData = await aiProvider.generateJson<FlashcardsResponse>(userPrompt, { ...config, systemPrompt });
 
     // Save Generation log in DB
     const generation = await prisma.aiGeneration.create({

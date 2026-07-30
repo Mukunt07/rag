@@ -1,20 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { LLMProvider } from "./llm.interface";
+import { AIProvider, ProviderConfig } from "./ai.provider";
 
-export class GeminiProvider implements LLMProvider {
-  private genAI: GoogleGenerativeAI;
-  private embeddingModel = "text-embedding-004";
-
-  constructor() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("GEMINI_API_KEY is missing. AI features will not work.");
-    }
-    this.genAI = new GoogleGenerativeAI(apiKey || "");
-  }
-
-  async generateEmbeddings(texts: string[]): Promise<number[][]> {
-    const model = this.genAI.getGenerativeModel({ model: this.embeddingModel });
+export class GeminiProvider implements AIProvider {
+  async generateEmbeddings(texts: string[], config: ProviderConfig): Promise<number[][]> {
+    const genAI = new GoogleGenerativeAI(config.apiKey);
+    // Use the provided embedding model or fallback
+    const modelName = config.model || "text-embedding-004";
+    const model = genAI.getGenerativeModel({ model: modelName });
     
     const promises = texts.map(async (text) => {
       const result = await model.embedContent(text);
@@ -24,21 +16,31 @@ export class GeminiProvider implements LLMProvider {
     return Promise.all(promises);
   }
 
-  async generateText(prompt: string, modelId: string, systemInstruction?: string): Promise<string> {
-    const model = this.genAI.getGenerativeModel({ 
-      model: modelId,
-      systemInstruction: systemInstruction,
+  async generateText(prompt: string, config: ProviderConfig): Promise<string> {
+    const genAI = new GoogleGenerativeAI(config.apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: config.model,
+      systemInstruction: config.systemPrompt,
+      generationConfig: {
+        temperature: config.temperature,
+        topP: config.topP,
+        maxOutputTokens: config.maxTokens,
+      }
     });
     const result = await model.generateContent(prompt);
     return result.response.text();
   }
 
-  async generateJson<T>(prompt: string, modelId: string, systemInstruction?: string): Promise<T> {
-    const model = this.genAI.getGenerativeModel({ 
-      model: modelId,
-      systemInstruction: systemInstruction,
+  async generateJson<T>(prompt: string, config: ProviderConfig): Promise<T> {
+    const genAI = new GoogleGenerativeAI(config.apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: config.model,
+      systemInstruction: config.systemPrompt,
       generationConfig: {
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        temperature: config.temperature,
+        topP: config.topP,
+        maxOutputTokens: config.maxTokens,
       }
     });
     

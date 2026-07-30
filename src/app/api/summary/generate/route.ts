@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getLLMProvider } from "@/services/ai/llm.factory";
+import { ProviderResolver } from "@/services/ai/provider.resolver";
+import { AIProviderId } from "@/services/ai/models.registry";
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,8 +52,8 @@ Use clear, readable markdown formatting.`;
 ${context}
 ---`;
 
-    const llmProvider = getLLMProvider(provider);
-    const summaryText = await llmProvider.generateText(userPrompt, model, systemPrompt);
+    const { provider: aiProvider, config } = await ProviderResolver.resolve(session.user.id, provider as AIProviderId, model);
+    const summaryText = await aiProvider.generateText(userPrompt, { ...config, systemPrompt });
 
     // Save Generation log in DB
     const generation = await prisma.aiGeneration.create({

@@ -1,7 +1,7 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { geminiProvider } from "./gemini.service";
-import { getLLMProvider } from "./llm.factory";
+import { ProviderResolver } from "./provider.resolver";
 import { prisma } from "@/lib/prisma";
+import { AIProviderId } from "./models.registry";
 
 export class RagService {
   private qdrantClient: QdrantClient;
@@ -20,17 +20,20 @@ export class RagService {
     } catch {
       await this.qdrantClient.createCollection(this.collectionName, {
         vectors: {
-          size: 768, // text-embedding-004 vector size
+          size: 768, // Adjust size depending on the embedding model used
           distance: "Cosine",
         },
       });
     }
   }
 
-  async indexChunks(documentId: string, chunks: { text: string; chunkIndex: number; pageNumber?: number }[]) {
+  async indexChunks(userId: string, documentId: string, chunks: { text: string; chunkIndex: number; pageNumber?: number }[]) {
     await this.ensureCollection();
 
-    const embeddings = await geminiProvider.generateEmbeddings(chunks.map(c => c.text));
+    // Default to gemini for embeddings if not specified differently
+    const { provider, config } = await ProviderResolver.resolve(userId, "gemini");
+
+    const embeddings = await provider.generateEmbeddings(chunks.map(c => c.text), config);
 
     const points = chunks.map((chunk, i) => {
       const vectorId = crypto.randomUUID();
@@ -51,14 +54,13 @@ export class RagService {
       points,
     });
 
-    // Save metadata to Prisma
     const dbChunks = points.map(p => ({
       documentId,
       chunkIndex: p.payload.chunkIndex as number,
       content: p.payload.text as string,
-      tokenCount: 0, // Simplified for now
+      tokenCount: 0,
       vectorId: p.id,
-      embeddingModel: "text-embedding-004",
+      embeddingModel: config.model,
       pageNumber: p.payload.pageNumber as number | undefined,
     }));
 
@@ -70,15 +72,18 @@ export class RagService {
   async searchAndAnswer(
     query: string, 
     workspaceId: string, 
+    userId: string,
     options?: { provider?: string; model?: string }
   ): Promise<{ answer: string; sources: any[] }> {
-    const providerId = options?.provider || "gemini";
-    const modelId = options?.model || "gemini-1.5-flash";
+    const providerId = (options?.provider || "gemini") as AIProviderId;
+    const modelId = options?.model;
 
-    // 1. Retrieve using Gemini embeddings (maintaining consistency)
-    const queryEmbedding = (await geminiProvider.generateEmbeddings([query]))[0];
+    const { provider, config } = await ProviderResolver.resolve(userId, providerId, modelId);
+
+    // Ensure we use the embedding model correctly. Usually embeddings have a different model id.
+    // For simplicity, we fallback to a default embedding model resolver if needed.
+    const queryEmbedding = (await provider.generateEmbeddings([query], { ...config, model: "text-embedding-004" }))[0];
     
-    // We should filter by documentIds that belong to this workspace
     const workspaceDocs = await prisma.document.findMany({
       where: { workspaceId },
       select: { id: true }
@@ -98,19 +103,15 @@ export class RagService {
 
     const sources = searchResults.map(r => r.payload);
 
-    // 2. Build Context
     const contextString = sources.map((s: any) => `[Doc ${s.documentId}, Chunk ${s.chunkIndex}]: ${s.text}`).join("\n\n");
 
-    // 3. Call selected LLM Provider
     const systemPrompt = `You are a helpful knowledge assistant. Use the following extracted context to answer the user's query. Cite your sources if possible.
 Context:
 ${contextString}
 `;
 
-    const llmProvider = getLLMProvider(providerId);
-    const answer = await llmProvider.generateText(query, modelId, systemPrompt);
+    const answer = await provider.generateText(query, { ...config, systemPrompt });
 
-    // 4. Return Citation
     return { answer, sources };
   }
 }

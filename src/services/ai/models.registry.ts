@@ -1,6 +1,8 @@
+export type AIProviderId = "gemini" | "openai" | "anthropic";
+
 export interface ModelConfig {
   id: string;
-  provider: "gemini";
+  provider: AIProviderId;
   displayName: string;
 }
 
@@ -15,5 +17,18 @@ export const MODELS: ModelConfig[] = [
     provider: "gemini",
     displayName: "Gemini 2.5 Pro",
   },
-
+  {
+    id: "gpt-4o",
+    provider: "openai",
+    displayName: "GPT-4o",
+  },
+  {
+    id: "gpt-4o-mini",
+    provider: "openai",
+    displayName: "GPT-4o Mini",
+  }
 ];
+
+export function getModelConfig(modelId: string): ModelConfig | undefined {
+  return MODELS.find((m) => m.id === modelId);
+}

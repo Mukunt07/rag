@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Call the RAG Service to get the answer and citations
-    const result = await ragService.searchAndAnswer(message, workspaceId, { provider, model });
+    const result = await ragService.searchAndAnswer(message, workspaceId, session.user.id, { provider, model });
 
     // Save the message and the bot's response if sessionId is provided
     if (sessionId) {

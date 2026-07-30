@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getLLMProvider } from "@/services/ai/llm.factory";
+import { ProviderResolver } from "@/services/ai/provider.resolver";
+import { AIProviderId } from "@/services/ai/models.registry";
 
 interface QuizQuestion {
   question: string;
@@ -72,8 +73,8 @@ You must respond with valid JSON matching this schema:
 ${context}
 ---`;
 
-    const llmProvider = getLLMProvider(provider);
-    const quizData = await llmProvider.generateJson<QuizResponse>(userPrompt, model, systemPrompt);
+    const { provider: aiProvider, config } = await ProviderResolver.resolve(session.user.id, provider as AIProviderId, model);
+    const quizData = await aiProvider.generateJson<QuizResponse>(userPrompt, { ...config, systemPrompt });
 
     // Save Generation log in DB
     await prisma.aiGeneration.create({
