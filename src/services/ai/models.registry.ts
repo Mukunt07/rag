@@ -1,6 +1,6 @@
 export interface ModelConfig {
   id: string;
-  provider: "gemini" | "ollama";
+  provider: "gemini";
   displayName: string;
 }
 
@@ -15,9 +15,5 @@ export const MODELS: ModelConfig[] = [
     provider: "gemini",
     displayName: "Gemini 2.5 Pro",
   },
-  {
-    id: "qwen2.5:7b",
-    provider: "ollama",
-    displayName: "Qwen 2.5 7B (Local)",
-  },
+
 ];
