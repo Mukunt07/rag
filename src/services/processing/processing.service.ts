@@ -61,7 +61,7 @@ export class ProcessingService {
       currentStage = (ProcessingStage as any).EMBEDDING;
       await this.updateJobStatus(jobId, currentStage, 80);
       
-      const embeddedChunks = await embeddingService.embedChunks(chunks);
+      const embeddedChunks = await embeddingService.embedChunks(doc.uploadedById, chunks);
       
       // 6. INDEXING
       currentStage = (ProcessingStage as any).INDEXING;

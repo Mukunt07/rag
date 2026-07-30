@@ -1,6 +1,7 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
-import { embeddingService } from "../processing/embedding.service";
-import { geminiEmbeddingProvider } from "../providers/embedding/gemini-embedding.provider";
+import { ProviderResolver } from "../ai/provider.resolver";
+import { prisma } from "@/lib/prisma";
+import { AIProviderId } from "../ai/models.registry";
 import { SearchOptions, RetrievedChunk, RetrievalResponse, RetrievalMetrics } from "./retrieval.types";
 
 export class RetrievalService {
@@ -14,14 +15,33 @@ export class RetrievalService {
     });
   }
 
-  async search(query: string, options: SearchOptions = {}): Promise<RetrievalResponse> {
+  async search(userId: string, query: string, options: SearchOptions = {}): Promise<RetrievalResponse> {
     const startTime = Date.now();
     const limit = options.limit || 10;
     const scoreThreshold = options.scoreThreshold || 0.0;
     
     // 1. Generate query embedding
-    // We access the provider directly to embed a single string without Chunk mapping
-    const queryVector = await geminiEmbeddingProvider.generateEmbedding(query);
+    let apiKeyRecord = await prisma.userApiKey.findFirst({
+      where: { userId, isDefault: true }
+    });
+    
+    if (!apiKeyRecord) {
+      apiKeyRecord = await prisma.userApiKey.findFirst({
+        where: { userId }
+      });
+    }
+
+    if (!apiKeyRecord) {
+      throw new Error("No API key configured for generating embeddings. Please set up a provider in Settings.");
+    }
+
+    const providerId = apiKeyRecord.provider as AIProviderId;
+    const modelId = providerId === "openai" ? "text-embedding-3-small" : "text-embedding-004";
+
+    const { provider, config } = await ProviderResolver.resolve(userId, providerId, modelId);
+    
+    const vectors = await provider.generateEmbeddings([query], config);
+    const queryVector = vectors[0];
 
     // 2. Build Qdrant Filters
     const mustFilters: any[] = [];
@@ -88,7 +108,7 @@ export class RetrievalService {
       averageScore,
       highestScore,
       lowestScore,
-      embeddingModelUsed: geminiEmbeddingProvider.defaultModel,
+      embeddingModelUsed: config.model || modelId,
       collectionName: this.collectionName,
     };
 
@@ -99,13 +119,7 @@ export class RetrievalService {
     };
   }
 
-  /**
-   * Placeholder for future cross-encoder or LLM reranking models.
-   * Currently just passes through the original vector similarity order.
-   */
   private async reRankResults(query: string, chunks: RetrievedChunk[]): Promise<RetrievedChunk[]> {
-    // In the future, send chunks.map(c => c.text) + query to a reranker API
-    // Sort the chunks by the new scores and return them.
     return chunks; 
   }
 }

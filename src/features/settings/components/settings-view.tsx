@@ -1,4 +1,5 @@
 import React from "react";
+import { AiSettings } from "./ai-settings";
 
 export function SettingsView() {
   return (
@@ -21,8 +22,7 @@ export function SettingsView() {
           </div>
 
           <div>
-            <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100">API Keys</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Manage your API integrations.</p>
+            <AiSettings />
           </div>
         </div>
       </div>
