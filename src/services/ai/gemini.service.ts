@@ -5,12 +5,14 @@ export class GeminiProvider implements AIProvider {
   async generateEmbeddings(texts: string[], config: ProviderConfig): Promise<number[][]> {
     const genAI = new GoogleGenerativeAI(config.apiKey);
     // Use the provided embedding model or fallback
-    const modelName = config.model || "text-embedding-004";
+    const modelName = config.model || "gemini-embedding-001";
     const model = genAI.getGenerativeModel({ model: modelName });
     
     const promises = texts.map(async (text) => {
       const result = await model.embedContent(text);
-      return result.embedding.values;
+      // Gemini-embedding-001 supports Matryoshka Representation Learning
+      // Truncating to 768 dimensions gives a valid embedding that matches our Qdrant collection size
+      return result.embedding.values.slice(0, 768);
     });
 
     return Promise.all(promises);

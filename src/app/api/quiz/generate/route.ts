@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { documentId, questionCount = 5, provider = "gemini", model = "gemini-1.5-flash" } = body;
+    const { documentId, questionCount = 5, provider = "gemini", model = "gemini-3.5-flash" } = body;
 
     if (!documentId) {
       return NextResponse.json({ error: "Missing documentId" }, { status: 400 });

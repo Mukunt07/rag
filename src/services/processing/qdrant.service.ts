@@ -13,17 +13,22 @@ export class QdrantService {
     });
   }
 
-  async ensureCollectionExists(vectorSize: number = 768) { // 768 is typical for Gemini
+  async ensureCollectionExists(collectionName: string = "documents", vectorSize: number = 768) { // 768 is typical for Gemini
     try {
       const collections = await this.client.getCollections();
-      const exists = collections.collections.some(c => c.name === this.collectionName);
+      const exists = collections.collections.some(c => c.name === collectionName);
       
       if (!exists) {
-        await this.client.createCollection(this.collectionName, {
+        await this.client.createCollection(collectionName, {
           vectors: {
             size: vectorSize,
             distance: "Cosine",
           },
+        });
+        await this.client.createPayloadIndex(collectionName, {
+          field_name: "documentId",
+          field_schema: "keyword",
+          wait: true,
         });
       }
     } catch (error) {
@@ -32,11 +37,13 @@ export class QdrantService {
     }
   }
 
-  async indexChunks(document: any, chunks: EmbeddedChunk[]) {
-    if (chunks.length === 0) return;
+  async indexChunks(document: any, chunks: EmbeddedChunk[], embeddingModel: string = "gemini") {
+    if (chunks.length === 0) return [];
     
+    const collectionName = `documents_${embeddingModel.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
     // Assuming vector size from the first chunk
-    await this.ensureCollectionExists(chunks[0].vector.length);
+    await this.ensureCollectionExists(collectionName, chunks[0].vector.length);
 
     const points = chunks.map(chunk => ({
       id: uuidv4(),
@@ -59,7 +66,7 @@ export class QdrantService {
     const batchSize = 100;
     for (let i = 0; i < points.length; i += batchSize) {
       const batch = points.slice(i, i + batchSize);
-      await this.client.upsert(this.collectionName, {
+      await this.client.upsert(collectionName, {
         wait: true,
         points: batch,
       });

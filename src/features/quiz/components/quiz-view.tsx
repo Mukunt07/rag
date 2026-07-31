@@ -51,7 +51,7 @@ export function QuizView() {
   // Selection States
   const [selectedDocId, setSelectedDocId] = useState("");
   const [questionCount, setQuestionCount] = useState(5);
-  const [selectedModelId, setSelectedModelId] = useState("gemini-1.5-flash");
+  const [selectedModelId, setSelectedModelId] = useState("gemini-3.5-flash");
   
   // Active Tab
   const [activeTab, setActiveTab] = useState<"quiz" | "flashcards">("quiz");

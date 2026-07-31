@@ -67,17 +67,25 @@ export class ProcessingService {
       currentStage = (ProcessingStage as any).INDEXING;
       await this.updateJobStatus(jobId, currentStage, 90);
       
-      await qdrantService.indexChunks(doc, embeddedChunks);
+      const apiKeyRecord = await (prisma as any).userApiKey.findFirst({
+        where: { userId: doc.uploadedById, isDefault: true }
+      }) || await (prisma as any).userApiKey.findFirst({
+        where: { userId: doc.uploadedById }
+      });
+      const providerId = apiKeyRecord?.provider || "gemini";
+      const embeddingModel = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
+
+      const vectorIds = await qdrantService.indexChunks(doc, embeddedChunks, embeddingModel);
       
       // Also save chunks to DB for reference if needed
       await prisma.documentChunk.createMany({
-        data: embeddedChunks.map(c => ({
+        data: embeddedChunks.map((c, i) => ({
           documentId,
           chunkIndex: c.metadata.chunkIndex,
           content: c.content,
           tokenCount: 0, // Calculate properly if needed
-          vectorId: c.metadata.chunkIndex.toString(), // Assuming Qdrant ID map or just index
-          embeddingModel: "gemini", 
+          vectorId: vectorIds[i],
+          embeddingModel: embeddingModel, 
           pageNumber: c.metadata.pageNumber
         }))
       });

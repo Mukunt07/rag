@@ -5,7 +5,6 @@ import { AIProviderId } from "./models.registry";
 
 export class RagService {
   private qdrantClient: QdrantClient;
-  private collectionName = "documents";
 
   constructor() {
     this.qdrantClient = new QdrantClient({
@@ -14,26 +13,43 @@ export class RagService {
     });
   }
 
-  async ensureCollection() {
+  async ensureCollection(collectionName: string, vectorSize: number = 768) {
     try {
-      await this.qdrantClient.getCollection(this.collectionName);
+      await this.qdrantClient.getCollection(collectionName);
     } catch {
-      await this.qdrantClient.createCollection(this.collectionName, {
+      await this.qdrantClient.createCollection(collectionName, {
         vectors: {
-          size: 768, // Adjust size depending on the embedding model used
+          size: vectorSize, // Adjust size depending on the embedding model used
           distance: "Cosine",
         },
+      });
+      await this.qdrantClient.createPayloadIndex(collectionName, {
+        field_name: "documentId",
+        field_schema: "keyword",
+        wait: true,
       });
     }
   }
 
   async indexChunks(userId: string, documentId: string, chunks: { text: string; chunkIndex: number; pageNumber?: number }[]) {
-    await this.ensureCollection();
+    let apiKeyRecord = await (prisma as any).userApiKey.findFirst({
+      where: { userId, isDefault: true }
+    });
+    if (!apiKeyRecord) {
+      apiKeyRecord = await (prisma as any).userApiKey.findFirst({ where: { userId } });
+    }
+    if (!apiKeyRecord) {
+      throw new Error("No API key configured for generating embeddings. Please set up a provider in Settings.");
+    }
+    const providerId = apiKeyRecord.provider as AIProviderId;
+    const modelId = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
+    const collectionName = `documents_${modelId.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-    // Default to gemini for embeddings if not specified differently
-    const { provider, config } = await ProviderResolver.resolve(userId, "gemini");
+    const { provider, config } = await ProviderResolver.resolve(userId, providerId, modelId);
 
     const embeddings = await provider.generateEmbeddings(chunks.map(c => c.text), config);
+
+    await this.ensureCollection(collectionName, embeddings[0]?.length || 768);
 
     const points = chunks.map((chunk, i) => {
       const vectorId = crypto.randomUUID();
@@ -49,7 +65,7 @@ export class RagService {
       };
     });
 
-    await this.qdrantClient.upsert(this.collectionName, {
+    await this.qdrantClient.upsert(collectionName, {
       wait: true,
       points,
     });
@@ -82,16 +98,18 @@ export class RagService {
 
     // Ensure we use the embedding model correctly. Usually embeddings have a different model id.
     // For simplicity, we fallback to a default embedding model resolver if needed.
-    const queryEmbedding = (await provider.generateEmbeddings([query], { ...config, model: "text-embedding-004" }))[0];
+    const embeddingModel = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
+    const queryEmbedding = (await provider.generateEmbeddings([query], { ...config, model: embeddingModel }))[0];
+    const collectionName = `documents_${embeddingModel.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     const workspaceDocs = await prisma.document.findMany({
-      where: { workspaceId },
+      where: { workspaceId, deletedAt: null },
       select: { id: true }
     });
     
     const docIds = workspaceDocs.map(d => d.id);
 
-    const searchResults = await this.qdrantClient.search(this.collectionName, {
+    const searchResults = await this.qdrantClient.search(collectionName, {
       vector: queryEmbedding,
       limit: 5,
       filter: {
@@ -105,7 +123,9 @@ export class RagService {
 
     const contextString = sources.map((s: any) => `[Doc ${s.documentId}, Chunk ${s.chunkIndex}]: ${s.text}`).join("\n\n");
 
-    const systemPrompt = `You are a helpful knowledge assistant. Use the following extracted context to answer the user's query. Cite your sources if possible.
+    const systemPrompt = `You are a helpful knowledge assistant. Use the following extracted context to answer the user's query. 
+Format your answer in well-structured, fluent sentences and paragraphs. Avoid returning raw, fragmented bullet points or outlines unless specifically requested. Cite your sources if possible.
+
 Context:
 ${contextString}
 `;

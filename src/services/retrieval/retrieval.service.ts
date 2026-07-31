@@ -21,12 +21,12 @@ export class RetrievalService {
     const scoreThreshold = options.scoreThreshold || 0.0;
     
     // 1. Generate query embedding
-    let apiKeyRecord = await prisma.userApiKey.findFirst({
+    let apiKeyRecord = await (prisma as any).userApiKey.findFirst({
       where: { userId, isDefault: true }
     });
     
     if (!apiKeyRecord) {
-      apiKeyRecord = await prisma.userApiKey.findFirst({
+      apiKeyRecord = await (prisma as any).userApiKey.findFirst({
         where: { userId }
       });
     }
@@ -36,7 +36,7 @@ export class RetrievalService {
     }
 
     const providerId = apiKeyRecord.provider as AIProviderId;
-    const modelId = providerId === "openai" ? "text-embedding-3-small" : "text-embedding-004";
+    const modelId = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
 
     const { provider, config } = await ProviderResolver.resolve(userId, providerId, modelId);
     

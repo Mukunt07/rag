@@ -39,12 +39,20 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Fetch document chunks to get vectorIds stored in database
+    // Fetch document chunks to get vectorIds and embedding models stored in database
     const chunks = await prisma.documentChunk.findMany({
       where: { documentId: id },
-      select: { vectorId: true }
+      select: { vectorId: true, embeddingModel: true }
     });
-    const vectorIds = chunks.map(c => c.vectorId).filter(Boolean);
+    
+    // Group vectors by embedding model
+    const vectorsByModel = chunks.reduce((acc, chunk) => {
+      if (chunk.vectorId && chunk.embeddingModel) {
+        if (!acc[chunk.embeddingModel]) acc[chunk.embeddingModel] = [];
+        acc[chunk.embeddingModel].push(chunk.vectorId);
+      }
+      return acc;
+    }, {} as Record<string, string[]>);
 
     // 2. Soft-delete document in PostgreSQL
     await prisma.document.update({
@@ -53,14 +61,17 @@ export async function DELETE(
     });
 
     // 3. Delete corresponding vectors in Qdrant (Best Effort)
-    if (vectorIds.length > 0) {
-      try {
-        await qdrantClient.delete("documents", {
-          points: vectorIds
-        });
-      } catch (qdrantError) {
-        console.error("Failed to delete vectors from Qdrant:", qdrantError);
-        // We don't fail the request since database soft-delete succeeded
+    for (const [model, vectorIds] of Object.entries(vectorsByModel)) {
+      if (vectorIds.length > 0) {
+        try {
+          const collectionName = `documents_${model.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          await qdrantClient.delete(collectionName, {
+            points: vectorIds
+          });
+        } catch (qdrantError) {
+          console.error(`Failed to delete vectors from Qdrant collection ${model}:`, qdrantError);
+          // We don't fail the request since database soft-delete succeeded
+        }
       }
     }
 

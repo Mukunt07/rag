@@ -31,7 +31,7 @@ export class EmbeddingService {
 
     const providerId = apiKeyRecord.provider as AIProviderId;
     // Use the standard embedding model for the given provider
-    const modelId = providerId === "openai" ? "text-embedding-3-small" : "text-embedding-004";
+    const modelId = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
 
     const { provider, config } = await ProviderResolver.resolve(userId, providerId, modelId);
     

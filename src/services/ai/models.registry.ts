@@ -1,4 +1,4 @@
-export type AIProviderId = "gemini" | "openai" | "anthropic";
+export type AIProviderId = "gemini" | "openai";
 
 export interface ModelConfig {
   id: string;
@@ -12,25 +12,25 @@ export interface ModelConfig {
 
 export const MODELS: ModelConfig[] = [
   {
-    id: "gemini-1.5-flash",
+    id: "gemini-3.5-flash",
     provider: "gemini",
-    displayName: "Gemini 1.5 Flash",
+    displayName: "Gemini 3.5 Flash",
     supportsVision: true,
     supportsEmbeddings: false,
     contextWindow: 1000000,
     recommended: true,
   },
   {
-    id: "gemini-2.5-pro",
+    id: "gemini-3.1-pro-preview",
     provider: "gemini",
-    displayName: "Gemini 2.5 Pro",
+    displayName: "Gemini 3.1 Pro (High)",
     supportsVision: true,
     supportsEmbeddings: false,
     contextWindow: 2000000,
     recommended: false,
   },
   {
-    id: "text-embedding-004",
+    id: "gemini-embedding-001",
     provider: "gemini",
     displayName: "Gemini Text Embedding",
     supportsVision: false,

@@ -37,6 +37,14 @@ export async function POST(req: NextRequest) {
         });
         targetWorkspaceId = newWorkspace.id;
       }
+    } else {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: targetWorkspaceId },
+        select: { ownerId: true }
+      });
+      if (!workspace || workspace.ownerId !== session.user.id) {
+        return NextResponse.json({ error: "Unauthorized access to workspace" }, { status: 403 });
+      }
     }
 
     const { document, processingJob } = await uploadService.handleUpload(file, session.user.id, targetWorkspaceId);

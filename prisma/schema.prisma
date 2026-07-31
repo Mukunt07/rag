@@ -329,6 +329,7 @@ model ChatSession {
   messages     ChatMessage[]
   usageMetrics UsageMetric[]
 
+  @@unique([workspaceId, createdById])
   @@index([workspaceId])
   @@map("chat_sessions")
 }

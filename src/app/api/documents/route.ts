@@ -28,6 +28,14 @@ export async function GET(req: NextRequest) {
       } else {
         return NextResponse.json({ documents: [] }); // No workspaces, no documents
       }
+    } else {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id: targetWorkspaceId },
+        select: { ownerId: true }
+      });
+      if (!workspace || workspace.ownerId !== session.user.id) {
+        return NextResponse.json({ error: "Unauthorized access to workspace" }, { status: 403 });
+      }
     }
 
     // Fetch documents along with their latest processing job status

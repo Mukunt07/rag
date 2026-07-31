@@ -47,13 +47,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { provider, apiKey, keyName, defaultModel, isDefault } = body;
+    const { provider, apiKey, keyName, defaultModel, isDefault, status } = body;
 
     if (!provider || !apiKey) {
       return NextResponse.json({ error: "Provider and API Key are required" }, { status: 400 });
     }
 
-    const encryptedKey = encryptionService.encrypt(apiKey);
+    const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+    const encryptedKey = encryptionService.encrypt(cleanApiKey);
 
     // If setting as default, unset others for this provider
     if (isDefault) {
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
         keyName: keyName || `${provider} Key`,
         defaultModel,
         isDefault: isDefault || false,
+        status: status || "active",
       }
     });
 

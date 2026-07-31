@@ -1,12 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { QdrantClient } from "@qdrant/js-client-rest";
+import { auth } from "@/lib/auth";
 
 const client = new QdrantClient({
   url: process.env.QDRANT_URL!,
   apiKey: process.env.QDRANT_API_KEY!,
 });
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const session = await auth.api.getSession({
+    headers: request.headers
+  });
+  
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const step = searchParams.get("step") || "1";
 
@@ -21,11 +30,16 @@ export async function GET(request: Request) {
       // Step 2: Create Collection
       await client.createCollection("documents", {
         vectors: {
-          size: 768, // Gemini text-embedding-004 is 768
+          size: 768, // Gemini gemini-embedding-001 is 768
           distance: "Cosine",
         },
       });
-      return NextResponse.json({ success: true, step, message: "Collection 'documents' created." });
+      await client.createPayloadIndex("documents", {
+        field_name: "documentId",
+        field_schema: "keyword",
+        wait: true,
+      });
+      return NextResponse.json({ success: true, step, message: "Collection 'documents' and index created." });
     }
 
     if (step === "3") {

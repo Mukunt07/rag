@@ -25,7 +25,7 @@ import { MODELS } from "@/services/ai/models.registry";
 
 interface Document {
   id: string;
-  name: string;
+  title: string;
   createdAt: string;
   workspaceId: string;
   processingJobs?: {
@@ -39,6 +39,11 @@ interface Message {
   sources?: any[];
 }
 
+const WELCOME_MESSAGE: Message = {
+  role: "assistant",
+  content: "Hello! I can help you analyze documents in this workspace. Ask me anything about them, or choose your preferred model."
+};
+
 export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
@@ -46,14 +51,9 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
   const [uploadMessage, setUploadMessage] = useState("");
   
   // Chat States
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hello! I can help you analyze documents in this workspace. Ask me anything about them, or choose your preferred model."
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [inputMessage, setInputMessage] = useState("");
-  const [selectedModelId, setSelectedModelId] = useState("gemini-1.5-flash");
+  const [selectedModelId, setSelectedModelId] = useState("gemini-3.5-flash");
   const [loadingChat, setLoadingChat] = useState(false);
   
   // UX Interaction States
@@ -86,6 +86,27 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
       fetchDocuments();
     }, 5000);
     return () => clearInterval(interval);
+  }, [workspaceId]);
+
+  useEffect(() => {
+    // Clear chat history immediately to prevent flickering
+    setMessages([WELCOME_MESSAGE]);
+    
+    const fetchChatHistory = async () => {
+      try {
+        const res = await fetch(`/api/chat?workspaceId=${workspaceId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages && data.messages.length > 0) {
+            setMessages(data.messages);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching chat history:", err);
+      }
+    };
+
+    fetchChatHistory();
   }, [workspaceId]);
 
   useEffect(() => {
@@ -191,7 +212,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
   };
 
   const getDocNameById = (id: string) => {
-    return documents.find(d => d.id === id)?.name || "Unknown Document";
+    return documents.find(d => d.id === id)?.title || "Unknown Document";
   };
 
   const getStatusIndicator = (doc: Document) => {
@@ -201,7 +222,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
     switch (job.status.toUpperCase()) {
       case "COMPLETED":
         return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
-      case "PROCESSING":
+      case "RUNNING":
       case "PENDING":
         return <Spinner size="sm" className="text-indigo-500" />;
       case "FAILED":
@@ -236,7 +257,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
               onChange={(e) => setSelectedModelId(e.target.value)}
               className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
             >
-              {MODELS.map((model) => (
+              {MODELS.filter(m => !m.supportsEmbeddings).map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.displayName} ({model.provider})
                 </option>
@@ -305,7 +326,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
                   className="flex items-center justify-between p-2.5 rounded-lg border border-zinc-150 dark:border-zinc-900 bg-zinc-50/50 dark:bg-zinc-900/20 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 transition-colors group cursor-pointer"
                   onClick={() => {
                     setPreviewDocUrl(`/api/documents/${doc.id}/download`);
-                    setPreviewDocName(doc.name);
+                    setPreviewDocName(doc.title);
                   }}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -314,7 +335,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-zinc-800 dark:text-zinc-250 truncate pr-2 group-hover:text-indigo-500 transition-colors">
-                        {doc.name}
+                        {doc.title}
                       </p>
                       <p className="text-[10px] text-zinc-500 mt-0.5">
                         {new Date(doc.createdAt).toLocaleDateString()}
@@ -344,7 +365,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
           <div className="px-4 py-2 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between shrink-0">
             <span className="text-xs font-medium text-zinc-550 dark:text-zinc-400 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-yellow-500 animate-pulse" />
-              Connected to <strong>{activeModel.displayName}</strong>
+              Selected Model: <strong>{activeModel.displayName}</strong>
             </span>
             <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 text-[10px] rounded font-medium border border-indigo-100 dark:border-indigo-900/30">
               {activeModel.provider.toUpperCase()}
@@ -372,7 +393,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
                   <div className={`p-3.5 rounded-2xl shadow-sm text-sm leading-relaxed ${
                     msg.role === "user" 
                       ? "bg-indigo-600 text-white rounded-tr-none" 
-                      : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-250 rounded-tl-none"
+                      : "bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 text-zinc-800 dark:text-indigo-200 rounded-tl-none"
                   }`}>
                     {msg.content}
                   </div>
