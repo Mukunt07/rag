@@ -44,8 +44,9 @@ export function UploadCard() {
       setStatus("success");
       setMessage("Document uploaded successfully!");
     } catch (error: any) {
+      console.error("Upload error:", error);
       setStatus("error");
-      setMessage(error.message);
+      setMessage("Upload failed. Please check your file and try again.");
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";

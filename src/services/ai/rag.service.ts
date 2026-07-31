@@ -124,7 +124,8 @@ export class RagService {
     const contextString = sources.map((s: any) => `[Doc ${s.documentId}, Chunk ${s.chunkIndex}]: ${s.text}`).join("\n\n");
 
     const systemPrompt = `You are a helpful knowledge assistant. Use the following extracted context to answer the user's query. 
-Format your answer in well-structured, fluent sentences and paragraphs. Avoid returning raw, fragmented bullet points or outlines unless specifically requested. Cite your sources if possible.
+Format your answer in well-structured, fluent sentences and paragraphs. Avoid returning raw, fragmented bullet points or outlines unless specifically requested.
+CRITICAL RULE: DO NOT include raw citation brackets (e.g., [Doc ID, Chunk X]) in your response text. Synthesize the information naturally. The user interface will automatically display the source citations below your response.
 
 Context:
 ${contextString}

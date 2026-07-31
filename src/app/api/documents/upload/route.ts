@@ -49,11 +49,9 @@ export async function POST(req: NextRequest) {
 
     const { document, processingJob } = await uploadService.handleUpload(file, session.user.id, targetWorkspaceId);
 
-    // Kick off processing in the background
-    // In a production environment this should be handed off to a robust queue (e.g. BullMQ)
-    import("@/services/processing/processing.service").then(({ processingService }) => {
-      processingService.processDocument(document.id, processingJob.id).catch(console.error);
-    });
+    // In development/local mode, we'll await this directly to prevent Node from suspending the context.
+    const { processingService } = await import("@/services/processing/processing.service");
+    await processingService.processDocument(document.id, processingJob.id);
     
     return NextResponse.json({ success: true, document });
   } catch (error) {

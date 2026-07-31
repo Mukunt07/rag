@@ -47,7 +47,8 @@ export function DocumentsView({ initialDocuments = [] }: { initialDocuments?: Do
       setMessage("Document uploaded successfully!");
       router.refresh(); // Refresh the page to show new document
     } catch (error: any) {
-      setMessage(error.message);
+      console.error("Upload error:", error);
+      setMessage("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -73,7 +74,8 @@ export function DocumentsView({ initialDocuments = [] }: { initialDocuments?: Do
       setMessage("Document deleted successfully!");
       router.refresh();
     } catch (error: any) {
-      setMessage(error.message);
+      console.error("Delete error:", error);
+      setMessage("Failed to delete document. Please try again.");
     }
   };
 

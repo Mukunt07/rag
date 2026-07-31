@@ -22,6 +22,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { MODELS } from "@/services/ai/models.registry";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Document {
   id: string;
@@ -138,7 +140,8 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
       setUploadMessage("Document uploaded successfully! Indexing started.");
       fetchDocuments();
     } catch (error: any) {
-      setUploadMessage(error.message || "Failed to upload document");
+      console.error("Upload error:", error);
+      setUploadMessage("Upload failed. Please check your file and try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -164,7 +167,8 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
       setUploadMessage("Document deleted successfully.");
       fetchDocuments();
     } catch (err: any) {
-      alert(err.message || "Failed to delete document.");
+      console.error("Delete error:", err);
+      alert("Failed to delete document. Please try again.");
     }
   };
 
@@ -202,9 +206,10 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
         sources: data.sources 
       }]);
     } catch (err: any) {
+      console.error("Chat error:", err);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: `Error: ${err.message || "Something went wrong."}` 
+        content: "I'm sorry, I encountered an issue while processing your request. Please try again later." 
       }]);
     } finally {
       setLoadingChat(false);
@@ -395,7 +400,11 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
                       ? "bg-indigo-600 text-white rounded-tr-none" 
                       : "bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 text-zinc-800 dark:text-indigo-200 rounded-tl-none"
                   }`}>
-                    {msg.content}
+                    <div className="[&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:mb-2">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
 
                   {/* Sources Citations */}

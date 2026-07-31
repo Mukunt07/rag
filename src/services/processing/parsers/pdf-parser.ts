@@ -4,7 +4,7 @@ if (typeof global !== "undefined" && !("DOMMatrix" in global)) {
 }
 
 // @ts-ignore
-const pdfParse = require("pdf-parse");
+const pdfParse = require("pdf-parse/lib/pdf-parse.js");
 import { DocumentParser } from "./parser.interface";
 import { ParsedDocument, Page } from "../processing.types";
 
