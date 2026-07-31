@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
+import { withRetry } from "@/lib/retry";
 
 export async function POST(req: NextRequest) {
   const session = await auth.api.getSession({
@@ -30,15 +31,25 @@ export async function POST(req: NextRequest) {
 
     if (provider === "gemini") {
       const genAI = new GoogleGenerativeAI(cleanApiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
-      await model.generateContent("Hello, this is a test. Reply 'OK'.");
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      await withRetry(() => model.generateContent("Hello, this is a test. Reply 'OK'."), 3, 1000);
     } else if (provider === "openai") {
       const openai = new OpenAI({ apiKey: cleanApiKey });
-      await openai.chat.completions.create({
+      await withRetry(() => openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: "Hello, this is a test. Reply 'OK'." }],
         max_tokens: 5,
+      }), 3, 1000);
+    } else if (provider === "groq") {
+      const openai = new OpenAI({ 
+        apiKey: cleanApiKey,
+        baseURL: "https://api.groq.com/openai/v1"
       });
+      await withRetry(() => openai.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: "Hello, this is a test. Reply 'OK'." }],
+        max_tokens: 5,
+      }), 3, 1000);
     } else {
       return NextResponse.json({ error: "Unsupported provider" }, { status: 400 });
     }

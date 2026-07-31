@@ -48,10 +48,15 @@ export function QuizView() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(true);
   
+  // Workspace selection states
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
+  
   // Selection States
   const [selectedDocId, setSelectedDocId] = useState("");
   const [questionCount, setQuestionCount] = useState(5);
-  const [selectedModelId, setSelectedModelId] = useState("gemini-3.5-flash");
+  const [selectedModelId, setSelectedModelId] = useState("gemini-2.5-flash");
   
   // Active Tab
   const [activeTab, setActiveTab] = useState<"quiz" | "flashcards">("quiz");
@@ -73,15 +78,42 @@ export function QuizView() {
 
   const activeModel = MODELS.find(m => m.id === selectedModelId) || MODELS[0];
 
+  // Fetch Workspaces on load
   useEffect(() => {
-    const fetchDocs = async () => {
+    const fetchWorkspaces = async () => {
       try {
-        const res = await fetch("/api/documents");
+        const res = await fetch("/api/workspaces");
+        if (res.ok) {
+          const data = await res.json();
+          setWorkspaces(data.workspaces || []);
+          if (data.workspaces?.length > 0) {
+            setSelectedWorkspaceId(data.workspaces[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading workspaces for quiz generator:", err);
+      } finally {
+        setLoadingWorkspaces(false);
+      }
+    };
+    fetchWorkspaces();
+  }, []);
+
+  // Fetch Documents scoped to selected workspace
+  useEffect(() => {
+    if (!selectedWorkspaceId) return;
+
+    const fetchDocs = async () => {
+      setLoadingDocs(true);
+      try {
+        const res = await fetch(`/api/documents?workspaceId=${selectedWorkspaceId}`);
         if (res.ok) {
           const data = await res.json();
           setDocuments(data.documents || []);
           if (data.documents?.length > 0) {
             setSelectedDocId(data.documents[0].id);
+          } else {
+            setSelectedDocId("");
           }
         }
       } catch (err) {
@@ -91,7 +123,7 @@ export function QuizView() {
       }
     };
     fetchDocs();
-  }, []);
+  }, [selectedWorkspaceId]);
 
   const handleGenerateQuiz = async () => {
     if (!selectedDocId) return;
@@ -281,6 +313,22 @@ export function QuizView() {
             </div>
           ) : (
             <>
+              {/* Workspace selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Select Workspace</label>
+                <select
+                  value={selectedWorkspaceId}
+                  onChange={(e) => setSelectedWorkspaceId(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-sm text-zinc-800 dark:text-zinc-200 focus:ring-1 focus:ring-indigo-500 outline-none"
+                >
+                  {workspaces.map((ws) => (
+                    <option key={ws.id} value={ws.id}>
+                      {ws.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Document selection */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Select Document</label>

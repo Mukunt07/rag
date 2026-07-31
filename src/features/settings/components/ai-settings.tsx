@@ -11,7 +11,7 @@ export function AiSettings() {
 
   // Default selection state
   const [defaultProvider, setDefaultProvider] = useState<string>("gemini");
-  const [defaultModel, setDefaultModel] = useState<string>("gemini-3.5-flash");
+  const [defaultModel, setDefaultModel] = useState<string>("gemini-2.5-flash");
   const [isSavingDefault, setIsSavingDefault] = useState(false);
 
   const fetchSettings = async () => {
@@ -104,6 +104,7 @@ export function AiSettings() {
             >
               <option value="gemini">Google Gemini</option>
               <option value="openai">OpenAI</option>
+              <option value="groq">Groq</option>
             </select>
           </div>
           <div>
@@ -139,7 +140,7 @@ export function AiSettings() {
       {/* Configured Providers */}
       <section>
         <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-4">Providers</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
            <ProviderCard 
              providerId="gemini" 
              providerName="Google Gemini" 
@@ -150,6 +151,12 @@ export function AiSettings() {
              providerId="openai" 
              providerName="OpenAI" 
              configuredKey={keys.find(k => k.provider === 'openai')} 
+             onRefresh={fetchSettings} 
+           />
+           <ProviderCard 
+             providerId="groq" 
+             providerName="Groq" 
+             configuredKey={keys.find(k => k.provider === 'groq')} 
              onRefresh={fetchSettings} 
            />
         </div>

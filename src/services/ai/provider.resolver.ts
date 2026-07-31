@@ -3,6 +3,7 @@ import { encryptionService } from "../security/encryption.service";
 import { AIProvider, ProviderConfig } from "./ai.provider";
 import { geminiProvider } from "./gemini.service";
 import { openAIProvider } from "./openai.service";
+import { groqProvider } from "./groq.service";
 import { getModelConfig, AIProviderId } from "./models.registry";
 
 export class ProviderResolver {
@@ -32,9 +33,10 @@ export class ProviderResolver {
     
     // Fallbacks if no model specified
     if (!model) {
-       if (requestedProvider === "gemini") model = "gemini-3.5-flash";
-       else if (requestedProvider === "openai") model = "gpt-4o-mini";
-       else model = "default";
+        if (requestedProvider === "gemini") model = "gemini-2.5-flash";
+        else if (requestedProvider === "openai") model = "gpt-4o-mini";
+        else if (requestedProvider === "groq") model = "llama-3.3-70b-versatile";
+        else model = "default";
     }
 
     const config: ProviderConfig = {
@@ -50,6 +52,9 @@ export class ProviderResolver {
         break;
       case "openai":
         providerInstance = openAIProvider;
+        break;
+      case "groq":
+        providerInstance = groqProvider;
         break;
       default:
         throw new Error(`Unsupported AI provider: ${requestedProvider}`);

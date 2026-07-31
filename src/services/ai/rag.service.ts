@@ -32,14 +32,16 @@ export class RagService {
   }
 
   async indexChunks(userId: string, documentId: string, chunks: { text: string; chunkIndex: number; pageNumber?: number }[]) {
-    let apiKeyRecord = await (prisma as any).userApiKey.findFirst({
-      where: { userId, isDefault: true }
+    let apiKeyRecord = await prisma.userApiKey.findFirst({
+      where: { userId, provider: { in: ["gemini", "openai"] }, isDefault: true }
     });
     if (!apiKeyRecord) {
-      apiKeyRecord = await (prisma as any).userApiKey.findFirst({ where: { userId } });
+      apiKeyRecord = await prisma.userApiKey.findFirst({
+        where: { userId, provider: { in: ["gemini", "openai"] } }
+      });
     }
     if (!apiKeyRecord) {
-      throw new Error("No API key configured for generating embeddings. Please set up a provider in Settings.");
+      throw new Error("No API key configured for generating embeddings. Please set up Gemini or OpenAI in Settings.");
     }
     const providerId = apiKeyRecord.provider as AIProviderId;
     const modelId = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
@@ -94,13 +96,26 @@ export class RagService {
     const providerId = (options?.provider || "gemini") as AIProviderId;
     const modelId = options?.model;
 
-    const { provider, config } = await ProviderResolver.resolve(userId, providerId, modelId);
+    // 1. Resolve Chat Generation Provider (can be gemini, openai, or groq)
+    const { provider: chatProvider, config: chatConfig } = await ProviderResolver.resolve(userId, providerId, modelId);
 
-    // Ensure we use the embedding model correctly. Usually embeddings have a different model id.
-    // For simplicity, we fallback to a default embedding model resolver if needed.
-    const embeddingModel = providerId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
-    const queryEmbedding = (await provider.generateEmbeddings([query], { ...config, model: embeddingModel }))[0];
+    // 2. Resolve Embedding Provider (must be gemini or openai)
+    let embedApiKeyRecord = await prisma.userApiKey.findFirst({
+      where: { userId, provider: { in: ["gemini", "openai"] }, isDefault: true }
+    });
+    if (!embedApiKeyRecord) {
+      embedApiKeyRecord = await prisma.userApiKey.findFirst({
+        where: { userId, provider: { in: ["gemini", "openai"] } }
+      });
+    }
+    if (!embedApiKeyRecord) {
+      throw new Error("No embedding provider (Gemini or OpenAI) configured in Settings.");
+    }
+    const embedProviderId = embedApiKeyRecord.provider as AIProviderId;
+    const embeddingModel = embedProviderId === "openai" ? "text-embedding-3-small" : "gemini-embedding-001";
     const collectionName = `documents_${embeddingModel.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    const { provider: embedProvider, config: embedConfig } = await ProviderResolver.resolve(userId, embedProviderId, embeddingModel);
     
     const workspaceDocs = await prisma.document.findMany({
       where: { workspaceId, deletedAt: null },
@@ -110,7 +125,7 @@ export class RagService {
     const docIds = workspaceDocs.map(d => d.id);
 
     const searchResults = await this.qdrantClient.search(collectionName, {
-      vector: queryEmbedding,
+      vector: (await embedProvider.generateEmbeddings([query], embedConfig))[0],
       limit: 5,
       filter: {
         must: [
@@ -131,7 +146,7 @@ Context:
 ${contextString}
 `;
 
-    const answer = await provider.generateText(query, { ...config, systemPrompt });
+    const answer = await chatProvider.generateText(query, { ...chatConfig, systemPrompt });
 
     return { answer, sources };
   }
