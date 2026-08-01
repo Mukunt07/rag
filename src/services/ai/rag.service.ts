@@ -124,15 +124,31 @@ export class RagService {
     
     const docIds = workspaceDocs.map(d => d.id);
 
-    const searchResults = await this.qdrantClient.search(collectionName, {
-      vector: (await embedProvider.generateEmbeddings([query], embedConfig))[0],
-      limit: 5,
-      filter: {
-        must: [
-          { key: "documentId", match: { any: docIds } }
-        ]
+    if (docIds.length === 0) {
+      const systemPrompt = `You are a helpful knowledge assistant. Note that there are currently no documents in this workspace. Explain to the user that they can upload documents to get context-aware answers, and answer their query directly using your general knowledge.`;
+      const answer = await chatProvider.generateText(query, { ...chatConfig, systemPrompt });
+      return { answer, sources: [] };
+    }
+
+    let searchResults: any[] = [];
+    try {
+      searchResults = await this.qdrantClient.search(collectionName, {
+        vector: (await embedProvider.generateEmbeddings([query], embedConfig))[0],
+        limit: 5,
+        filter: {
+          must: [
+            { key: "documentId", match: { any: docIds } }
+          ]
+        }
+      });
+    } catch (err: any) {
+      const errStr = String(err).toLowerCase();
+      if (errStr.includes("not found") || errStr.includes("404")) {
+        searchResults = [];
+      } else {
+        throw err;
       }
-    });
+    }
 
     const sources = searchResults.map(r => r.payload);
 

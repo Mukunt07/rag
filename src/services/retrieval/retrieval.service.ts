@@ -63,12 +63,25 @@ export class RetrievalService {
     // 3. Qdrant Search (Fetch Top 20 for reranking if limit < 20, else fetch limit * 2)
     const initialFetchLimit = Math.max(20, limit * 2);
 
-    const searchResults = await this.client.search(this.collectionName, {
-      vector: queryVector,
-      limit: initialFetchLimit,
-      filter: filter,
-      score_threshold: scoreThreshold,
-    });
+    const collectionName = `documents_${modelId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    let searchResults: any[] = [];
+    try {
+      searchResults = await this.client.search(collectionName, {
+        vector: queryVector,
+        limit: initialFetchLimit,
+        filter: filter,
+        score_threshold: scoreThreshold,
+      });
+    } catch (err: any) {
+      // Return empty results gracefully if the Qdrant collection does not exist yet (e.g. fresh environment)
+      const errStr = String(err).toLowerCase();
+      if (errStr.includes("not found") || errStr.includes("404")) {
+        searchResults = [];
+      } else {
+        throw err;
+      }
+    }
 
     // Map to RetrievedChunk interface
     let chunks: RetrievedChunk[] = searchResults.map(res => {
@@ -109,7 +122,7 @@ export class RetrievalService {
       highestScore,
       lowestScore,
       embeddingModelUsed: config.model || modelId,
-      collectionName: this.collectionName,
+      collectionName: collectionName,
     };
 
     return {
