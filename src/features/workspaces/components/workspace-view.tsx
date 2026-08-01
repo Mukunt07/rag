@@ -196,7 +196,16 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to get response from AI assistant.");
+        const contentType = res.headers.get("content-type");
+        const errorData = (contentType && contentType.includes("application/json"))
+          ? await res.json().catch(() => ({}))
+          : {};
+        throw new Error(errorData.error || "Failed to get response from AI assistant.");
+      }
+
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("The server returned an unexpected response format.");
       }
 
       const data = await res.json();
@@ -209,7 +218,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
       console.error("Chat error:", err);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "I'm sorry, I encountered an issue while processing your request. Please try again later." 
+        content: `I'm sorry, I encountered an issue: ${err.message || "Please try again later."}` 
       }]);
     } finally {
       setLoadingChat(false);
