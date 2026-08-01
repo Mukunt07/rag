@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { MODELS } from "@/services/ai/models.registry";
+import { safeFetch } from "@/lib/api-client";
 
 interface Document {
   id: string;
@@ -82,17 +83,10 @@ export function QuizView() {
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
-        const res = await fetch("/api/workspaces");
-        if (res.ok) {
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Received non-JSON response from server.");
-          }
-          const data = await res.json();
-          setWorkspaces(data.workspaces || []);
-          if (data.workspaces?.length > 0) {
-            setSelectedWorkspaceId(data.workspaces[0].id);
-          }
+        const data = await safeFetch<{ workspaces: any[] }>("/api/workspaces");
+        setWorkspaces(data.workspaces || []);
+        if (data.workspaces?.length > 0) {
+          setSelectedWorkspaceId(data.workspaces[0].id);
         }
       } catch (err) {
         console.error("Error loading workspaces for quiz generator:", err);
@@ -110,19 +104,12 @@ export function QuizView() {
     const fetchDocs = async () => {
       setLoadingDocs(true);
       try {
-        const res = await fetch(`/api/documents?workspaceId=${selectedWorkspaceId}`);
-        if (res.ok) {
-          const contentType = res.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Received non-JSON response from server.");
-          }
-          const data = await res.json();
-          setDocuments(data.documents || []);
-          if (data.documents?.length > 0) {
-            setSelectedDocId(data.documents[0].id);
-          } else {
-            setSelectedDocId("");
-          }
+        const data = await safeFetch<{ documents: any[] }>(`/api/documents?workspaceId=${selectedWorkspaceId}`);
+        setDocuments(data.documents || []);
+        if (data.documents?.length > 0) {
+          setSelectedDocId(data.documents[0].id);
+        } else {
+          setSelectedDocId("");
         }
       } catch (err) {
         console.error("Error loading documents for quiz generator:", err);
@@ -145,7 +132,7 @@ export function QuizView() {
     setQuizCompleted(false);
 
     try {
-      const res = await fetch("/api/quiz/generate", {
+      const data = await safeFetch("/api/quiz/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -155,17 +142,6 @@ export function QuizView() {
           model: activeModel.id
         })
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to generate quiz. Please make sure the document is processed.");
-      }
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("The server returned an unexpected response format (HTML instead of JSON).");
-      }
-
-      const data = await res.json();
       setQuiz(data);
     } catch (err: any) {
       alert(err.message || "Something went wrong.");
@@ -181,7 +157,7 @@ export function QuizView() {
     setFcIndex(0);
     setFcFlipped(false);
     try {
-      const res = await fetch("/api/flashcards/generate", {
+      const data = await safeFetch<{ flashcards: Flashcard[] }>("/api/flashcards/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -191,20 +167,7 @@ export function QuizView() {
           model: activeModel.id
         })
       });
-      if (res.ok) {
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Received non-JSON response from server.");
-        }
-        const data = await res.json();
-        setFlashcards(data.flashcards || []);
-      } else {
-        const contentType = res.headers.get("content-type");
-        const errorData = (contentType && contentType.includes("application/json"))
-          ? await res.json().catch(() => ({}))
-          : {};
-        alert(errorData.error || "Failed to generate flashcards.");
-      }
+      setFlashcards(data.flashcards || []);
     } catch (err: any) {
       alert(err.message || "Something went wrong.");
     } finally {

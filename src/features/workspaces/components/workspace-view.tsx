@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { MODELS } from "@/services/ai/models.registry";
+import { safeFetch } from "@/lib/api-client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -70,11 +71,8 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
 
   const fetchDocuments = async () => {
     try {
-      const res = await fetch(`/api/documents?workspaceId=${workspaceId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDocuments(data.documents || []);
-      }
+      const data = await safeFetch<{ documents: any[] }>(`/api/documents?workspaceId=${workspaceId}`);
+      setDocuments(data.documents || []);
     } catch (err) {
       console.error("Error fetching workspace documents:", err);
     } finally {
@@ -96,12 +94,9 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
     
     const fetchChatHistory = async () => {
       try {
-        const res = await fetch(`/api/chat?workspaceId=${workspaceId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.messages && data.messages.length > 0) {
-            setMessages(data.messages);
-          }
+        const data = await safeFetch<{ messages: any[] }>(`/api/chat?workspaceId=${workspaceId}`);
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
         }
       } catch (err) {
         console.error("Error fetching chat history:", err);
@@ -127,15 +122,10 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
       formData.append("file", file);
       formData.append("workspaceId", workspaceId);
 
-      const res = await fetch("/api/documents/upload", {
+      await safeFetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to upload document");
-      }
 
       setUploadMessage("Document uploaded successfully! Indexing started.");
       fetchDocuments();
@@ -155,14 +145,9 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
     if (!confirm("Are you sure you want to delete this document? This will remove all associated AI chunks and embeddings.")) return;
 
     try {
-      const res = await fetch(`/api/documents/${id}`, {
+      await safeFetch(`/api/documents/${id}`, {
         method: "DELETE"
       });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to delete document");
-      }
 
       setUploadMessage("Document deleted successfully.");
       fetchDocuments();
@@ -182,7 +167,7 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
     setLoadingChat(true);
 
     try {
-      const res = await fetch("/api/chat", {
+      const data = await safeFetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,20 +180,6 @@ export function WorkspaceView({ workspaceId }: { workspaceId: string }) {
         })
       });
 
-      if (!res.ok) {
-        const contentType = res.headers.get("content-type");
-        const errorData = (contentType && contentType.includes("application/json"))
-          ? await res.json().catch(() => ({}))
-          : {};
-        throw new Error(errorData.error || "Failed to get response from AI assistant.");
-      }
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("The server returned an unexpected response format.");
-      }
-
-      const data = await res.json();
       setMessages(prev => [...prev, { 
         role: "assistant", 
         content: data.answer, 
