@@ -56,7 +56,7 @@ export function QuizView() {
   // Selection States
   const [selectedDocId, setSelectedDocId] = useState("");
   const [questionCount, setQuestionCount] = useState(5);
-  const [selectedModelId, setSelectedModelId] = useState("gemini-2.5-flash");
+  const [selectedModelId, setSelectedModelId] = useState("gemini-3.5-flash");
   
   // Active Tab
   const [activeTab, setActiveTab] = useState<"quiz" | "flashcards">("quiz");
@@ -84,6 +84,10 @@ export function QuizView() {
       try {
         const res = await fetch("/api/workspaces");
         if (res.ok) {
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Received non-JSON response from server.");
+          }
           const data = await res.json();
           setWorkspaces(data.workspaces || []);
           if (data.workspaces?.length > 0) {
@@ -108,6 +112,10 @@ export function QuizView() {
       try {
         const res = await fetch(`/api/documents?workspaceId=${selectedWorkspaceId}`);
         if (res.ok) {
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Received non-JSON response from server.");
+          }
           const data = await res.json();
           setDocuments(data.documents || []);
           if (data.documents?.length > 0) {
@@ -152,6 +160,11 @@ export function QuizView() {
         throw new Error("Failed to generate quiz. Please make sure the document is processed.");
       }
 
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("The server returned an unexpected response format (HTML instead of JSON).");
+      }
+
       const data = await res.json();
       setQuiz(data);
     } catch (err: any) {
@@ -179,14 +192,21 @@ export function QuizView() {
         })
       });
       if (res.ok) {
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Received non-JSON response from server.");
+        }
         const data = await res.json();
         setFlashcards(data.flashcards || []);
       } else {
-        const errorData = await res.json().catch(() => ({}));
+        const contentType = res.headers.get("content-type");
+        const errorData = (contentType && contentType.includes("application/json"))
+          ? await res.json().catch(() => ({}))
+          : {};
         alert(errorData.error || "Failed to generate flashcards.");
       }
-    } catch (err) {
-      alert("Something went wrong.");
+    } catch (err: any) {
+      alert(err.message || "Something went wrong.");
     } finally {
       setGeneratingFc(false);
     }

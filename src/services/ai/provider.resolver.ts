@@ -33,7 +33,7 @@ export class ProviderResolver {
     
     // Fallbacks if no model specified
     if (!model) {
-        if (requestedProvider === "gemini") model = "gemini-2.5-flash";
+        if (requestedProvider === "gemini") model = "gemini-3.5-flash";
         else if (requestedProvider === "openai") model = "gpt-4o-mini";
         else if (requestedProvider === "groq") model = "llama-3.3-70b-versatile";
         else model = "default";

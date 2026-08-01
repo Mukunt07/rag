@@ -11,7 +11,7 @@ export function AiSettings() {
 
   // Default selection state
   const [defaultProvider, setDefaultProvider] = useState<string>("gemini");
-  const [defaultModel, setDefaultModel] = useState<string>("gemini-2.5-flash");
+  const [defaultModel, setDefaultModel] = useState<string>("gemini-3.5-flash");
   const [isSavingDefault, setIsSavingDefault] = useState(false);
 
   const fetchSettings = async () => {

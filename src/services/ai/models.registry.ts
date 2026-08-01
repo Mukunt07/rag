@@ -12,22 +12,13 @@ export interface ModelConfig {
 
 export const MODELS: ModelConfig[] = [
   {
-    id: "gemini-2.5-flash",
-    provider: "gemini",
-    displayName: "Gemini 2.5 Flash",
-    supportsVision: true,
-    supportsEmbeddings: false,
-    contextWindow: 1000000,
-    recommended: true,
-  },
-  {
     id: "gemini-3.5-flash",
     provider: "gemini",
     displayName: "Gemini 3.5 Flash",
     supportsVision: true,
     supportsEmbeddings: false,
     contextWindow: 1000000,
-    recommended: false,
+    recommended: true,
   },
   {
     id: "gemini-3.1-pro-preview",

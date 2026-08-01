@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     if (provider === "gemini") {
       const genAI = new GoogleGenerativeAI(cleanApiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
       await withRetry(() => model.generateContent("Hello, this is a test. Reply 'OK'."), 3, 1000);
     } else if (provider === "openai") {
       const openai = new OpenAI({ apiKey: cleanApiKey });
