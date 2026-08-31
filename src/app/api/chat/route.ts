@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ragService } from "@/services/ai/rag.service";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { ProviderError } from "@/services/ai/ai.provider";
+import { UsageService } from "@/services/ai/usage.service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -82,6 +85,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing message or workspaceId" }, { status: 400 });
     }
 
+    const { success } = await checkRateLimit(session.user.id);
+    if (!success) {
+      return NextResponse.json({ 
+        error: { code: "RATE_LIMIT_EXCEEDED", message: "You have exceeded the request limit. Please try again later." } 
+      }, { status: 429 });
+    }
+
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: { ownerId: true }
@@ -108,28 +118,49 @@ export async function POST(req: NextRequest) {
     });
 
     // Call the RAG Service to get the answer and citations
-    const result = await ragService.searchAndAnswer(message, workspaceId, session.user.id, { provider, model });
+    try {
+      const result = await ragService.searchAndAnswer(message, workspaceId, session.user.id, { provider, model });
 
-    // Save User Message
-    await prisma.chatMessage.create({
-      data: {
-        sessionId: chatSession.id,
-        role: "user",
-        content: message,
+      // Save User Message
+      await prisma.chatMessage.create({
+        data: {
+          sessionId: chatSession.id,
+          role: "user",
+          content: message,
+        }
+      });
+
+      // Save Assistant Message
+      await prisma.chatMessage.create({
+        data: {
+          sessionId: chatSession.id,
+          role: "assistant",
+          content: result.answer,
+          citations: result.sources as any,
+        }
+      });
+
+      return NextResponse.json(result);
+    } catch (error: any) {
+      if (error instanceof ProviderError) {
+        // Log the failure to UsageService
+        await UsageService.logUsage({
+          userId: session.user.id,
+          workspaceId,
+          provider: provider || "unknown",
+          model: model || "unknown",
+          requestType: "chat",
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: 0,
+          chatSessionId: chatSession.id,
+          errorCategory: error.code
+        });
+        
+        return NextResponse.json({ error: { code: error.code, message: error.message } }, { status: 400 });
       }
-    });
-
-    // Save Assistant Message
-    await prisma.chatMessage.create({
-      data: {
-        sessionId: chatSession.id,
-        role: "assistant",
-        content: result.answer,
-        citations: result.sources as any,
-      }
-    });
-
-    return NextResponse.json(result);
+      throw error;
+    }
   } catch (error: any) {
     console.error("Chat API error", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

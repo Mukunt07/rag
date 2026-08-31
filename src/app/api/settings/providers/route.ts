@@ -3,6 +3,9 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { encryptionService } from "@/services/security/encryption.service";
+import { ProviderResolver } from "@/services/ai/provider.resolver";
+import { ProviderError } from "@/services/ai/ai.provider";
+import { AIProviderId } from "@/services/ai/models.registry";
 
 export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({
@@ -54,6 +57,18 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanApiKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+
+    // Validate API Key before saving
+    try {
+      const { provider: aiProviderInstance, config } = await ProviderResolver.resolveFromRaw(provider as AIProviderId, cleanApiKey, defaultModel);
+      await aiProviderInstance.validateApiKey(config);
+    } catch (error: any) {
+      if (error instanceof ProviderError) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      return NextResponse.json({ error: "Failed to validate API key." }, { status: 400 });
+    }
+
     const encryptedKey = encryptionService.encrypt(cleanApiKey);
 
     // If setting as default, unset others for this provider

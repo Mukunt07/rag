@@ -12,6 +12,7 @@ export interface UsageLogParams {
   cost?: number;
   documentId?: string;
   chatSessionId?: string;
+  errorCategory?: string; // New parameter to encode errors
 }
 
 export class UsageService {
@@ -20,13 +21,18 @@ export class UsageService {
    */
   static async logUsage(params: UsageLogParams) {
     try {
+      // If there is an error, prefix it to the requestType to track failures without changing schema
+      const finalRequestType = params.errorCategory 
+        ? `FAILED:${params.errorCategory}:${params.requestType}` 
+        : params.requestType;
+
       await prisma.usageMetric.create({
         data: {
           userId: params.userId,
           workspaceId: params.workspaceId,
           provider: params.provider,
           model: params.model,
-          requestType: params.requestType,
+          requestType: finalRequestType,
           inputTokens: params.inputTokens,
           outputTokens: params.outputTokens,
           totalTokens: params.inputTokens + params.outputTokens,

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadService } from "@/services/documents/upload.service";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { inngest } from "@/lib/inngest";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +13,13 @@ export async function POST(req: NextRequest) {
     
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { success } = await checkRateLimit(session.user.id);
+    if (!success) {
+      return NextResponse.json({ 
+        error: { code: "RATE_LIMIT_EXCEEDED", message: "You have exceeded the request limit. Please try again later." } 
+      }, { status: 429 });
     }
 
     const formData = await req.formData();
@@ -28,7 +37,6 @@ export async function POST(req: NextRequest) {
       if (userWorkspaces.length > 0) {
         targetWorkspaceId = userWorkspaces[0].id;
       } else {
-        // Create a default workspace if the user has none
         const newWorkspace = await prisma.workspace.create({
           data: {
             name: "My Workspace",
@@ -49,9 +57,14 @@ export async function POST(req: NextRequest) {
 
     const { document, processingJob } = await uploadService.handleUpload(file, session.user.id, targetWorkspaceId);
 
-    // In development/local mode, we'll await this directly to prevent Node from suspending the context.
-    const { processingService } = await import("@/services/processing/processing.service");
-    await processingService.processDocument(document.id, processingJob.id);
+    // Queue durable background job instead of awaiting synchronously
+    await inngest.send({
+      name: "app/process.document",
+      data: {
+        documentId: document.id,
+        jobId: processingJob.id
+      }
+    });
     
     return NextResponse.json({ success: true, document });
   } catch (error) {

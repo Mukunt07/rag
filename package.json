@@ -23,11 +23,14 @@
     "@prisma/client": "^7.9.0",
     "@qdrant/js-client-rest": "^1.18.0",
     "@types/pg": "^8.20.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.3",
     "better-auth": "^1.6.25",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "file-type": "^22.0.1",
     "framer-motion": "^12.42.2",
+    "inngest": "^4.18.1",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.0",
     "next": "16.2.10",
@@ -52,6 +55,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/proxyquire": "^1.3.31",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-grid-layout": "^1.3.6",
@@ -59,6 +63,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "prisma": "^7.9.0",
+    "proxyquire": "^2.1.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
